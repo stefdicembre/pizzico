@@ -17,8 +17,8 @@
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
 :root{
-  --bg:#fcf5f8; --card:#ffffff; --ink:#1c1519; --muted:#85707b; --line:#f1dfe8;
-  --accent:#d01d78; --accent-soft:#fde4f0; --on-accent:#ffffff; --danger:#b3261e; --green:#3f8a5a; --gold:#e9a825;
+  --bg:#fcf5f8; --card:#ffffff; --ink:#1c1519; --muted:#735d69; --line:#f1dfe8; --field:#9c8090;
+  --accent:#c2186f; --accent-soft:#fde4f0; --on-accent:#ffffff; --danger:#b3261e; --green:#2f7a4a; --gold:#a87200; --err-bg:#fdeaea; --err-line:#f0b8b8;
   --stef:#3b6fb6; --third:#26795e; --partner:#a65a14; --radius:16px;
   --tilemix:100%; --note-bg:#fff9e8; --note-line:#f0e0a8; --tag-ink:#8f325e;
 }
@@ -47,7 +47,7 @@ input,textarea,select{font:inherit;color:inherit}
 .i{display:inline-block;vertical-align:-.18em;flex:none}
 .i.fill path{fill:currentColor}
 .search .i{color:var(--muted)}
-.es-ic{display:block;margin:0 auto 10px;opacity:.6}
+.es-ic{display:block;margin:0 auto 10px}
 .steps{display:flex;align-items:center;gap:6px;margin:8px 0 2px;font-size:12px;font-weight:700;color:var(--muted)}
 .steps span{margin-right:4px;white-space:nowrap}
 .steps i{flex:1;height:4px;border-radius:9px;background:var(--line)}
@@ -55,11 +55,14 @@ input,textarea,select{font:inherit;color:inherit}
 .addh{font-size:25px;margin:16px 0 6px;letter-spacing:-.4px}
 .how{color:var(--muted);font-size:15px;margin-bottom:18px;line-height:1.5}
 .how b{color:var(--ink);font-weight:600}
-.pastebox{display:flex;gap:8px;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:6px 6px 6px 12px;margin-bottom:14px;align-items:center}
+.pastebox{display:flex;gap:8px;background:var(--card);border:1px solid var(--field);border-radius:14px;padding:6px 6px 6px 12px;margin-bottom:14px;align-items:center}
 .pastebox input{flex:1;border:0;outline:0;background:none;font-size:16px;min-width:0;padding:8px 0}
 .pastebox button{display:inline-flex;align-items:center;gap:5px;background:var(--accent-soft);color:var(--accent);font-weight:700;font-size:14px;border-radius:10px;padding:9px 12px}
 .addfoot{margin-top:26px}
-.quiet.proto{font-size:12px;text-decoration:none;opacity:.7}
+.alt-way{margin-top:34px;padding-top:20px;border-top:1px solid var(--line);text-align:center}
+.alt-way .muted{font-size:14px;margin-bottom:8px}
+.btn.alt{background:var(--card);color:var(--accent);border:1.5px solid color-mix(in srgb,var(--accent) 45%,transparent)}
+.quiet.proto{font-size:12px;text-decoration:none}
 .opt{display:flex;align-items:center;gap:12px;width:100%;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:10px;text-align:left;color:var(--ink)}
 .opt>.i{color:var(--accent)}
 .opt b{flex:1;font-size:15px;font-weight:600}
@@ -67,7 +70,7 @@ div.opt{display:block}
 div.opt .row{margin-bottom:10px;gap:12px}
 div.opt .row .i{color:var(--accent)}
 div.opt .pastebox{margin:0;background:var(--bg)}
-.search{display:flex;align-items:center;gap:8px;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:10px 12px;margin-bottom:10px}
+.search{display:flex;align-items:center;gap:8px;background:var(--card);border:1px solid var(--field);border-radius:14px;padding:10px 12px;margin-bottom:10px}
 .search input{border:0;outline:0;flex:1;background:none;font-size:15px}
 .chips{display:flex;gap:7px;overflow-x:auto;padding:2px 0 10px;scrollbar-width:none}
 .chips::-webkit-scrollbar{display:none}
@@ -83,7 +86,7 @@ div.opt .pastebox{margin:0;background:var(--bg)}
 .hero,.match .t,.jent .t{background-size:cover!important;background-position:center!important}
 .photorow{display:flex;gap:14px;align-items:center;margin:-4px 0 12px;font-size:13px}
 .photorow button{color:var(--accent);font-weight:600}
-.photorow label{color:var(--accent);font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:5px}
+.photorow label{color:var(--accent);font-weight:600;cursor:pointer;padding:10px 0;display:inline-flex;align-items:center;gap:5px}
 .welcome-icon{width:80px;height:80px;border-radius:19px;display:block;margin:0 auto;box-shadow:0 6px 22px color-mix(in srgb,#ff7eb6 35%,transparent)}
 :root[data-dark] .welcome-icon{box-shadow:0 0 0 1px #3a2b33,0 6px 26px color-mix(in srgb,#ff7eb6 22%,transparent)}
 .card .body{padding:9px 11px 11px}
@@ -93,19 +96,27 @@ div.opt .pastebox{margin:0;background:var(--bg)}
 .heart{width:22px;height:22px;border-radius:50%;background:rgba(255,255,255,.92);font-size:11px;display:flex;align-items:center;justify-content:center;font-weight:700}
 .heart.stef{color:#3b6fb6} .heart.partner{color:#a65a14}
 .tag{display:inline-block;padding:3px 9px;border-radius:99px;background:var(--accent-soft);color:var(--tag-ink);font-size:12px;font-weight:600;margin:0 5px 5px 0}
-.tag.alt{background:#e6efe9;color:#2e6a44} .tag.cu{background:#efe9f5;color:#6a4a8c} .tag.cs{background:#f3ecd7;color:#8a6a10}
+.tag.alt{background:#e6efe9;color:#2e6a44} .tag.cu{background:#efe9f5;color:#6a4a8c} .tag.cs{background:#f3ecd7;color:#765a0c}
 h1,h2,h3,.card h3{font-family:var(--head,inherit)}
 h2{font-size:18px;margin:18px 0 8px}
 .note{color:var(--ink)}
+::placeholder{color:var(--muted);opacity:1}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.search:focus-within,.pastebox:focus-within,.field input:focus,.field textarea:focus,.field select:focus{outline:2px solid var(--accent);outline-offset:1px}
+@media (prefers-reduced-motion:reduce){#main{scroll-behavior:auto}}
+.tlink{padding:10px 2px!important;margin:-10px 0}
+.sheet .xclose{float:right;margin:-6px -6px 0 8px;width:44px;height:44px;display:flex;align-items:center;justify-content:center;color:var(--muted)}
+.err{background:var(--err-bg)!important;border-color:var(--err-line)!important}
 .sheet-bg{position:absolute;inset:0;background:rgba(30,20,10,.45);z-index:20;display:flex;align-items:flex-end}
 .sheet{background:var(--bg);width:100%;max-height:85%;overflow-y:auto;border-radius:22px 22px 0 0;padding:16px 16px 28px}
 .sheet h3{margin:0 0 10px}
 .btn{background:var(--accent);color:var(--on-accent);border-radius:12px;padding:12px 16px;font-weight:700;text-align:center;display:flex;align-items:center;justify-content:center;gap:7px;width:100%}
 .btn.ghost{background:var(--card);color:var(--ink);border:1px solid var(--line)}
+.btn:disabled{opacity:.4;cursor:default}
 .btn.sm{padding:8px 12px;font-size:13px;width:auto;display:inline-flex}
 .field{display:block;margin-bottom:12px}
 .field label{display:block;font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px}
-.field input,.field textarea,.field select{width:100%;border:1px solid var(--line);border-radius:12px;padding:10px 12px;background:var(--card);outline:0}
+.field input,.field textarea,.field select{width:100%;border:1px solid var(--field);border-radius:12px;padding:10px 12px;background:var(--card);outline:0}
 .field input[type=checkbox]{width:auto;padding:0;margin:0;flex:none}
 .field label.check{display:flex;gap:8px;align-items:center;justify-content:flex-start}
 .field textarea{min-height:110px;resize:vertical}
@@ -122,15 +133,17 @@ h2{font-size:18px;margin:18px 0 8px}
 .step{display:flex;gap:12px;padding:10px 0}
 .step .n{flex:none;width:26px;height:26px;border-radius:50%;background:var(--accent-soft);color:var(--accent);font-weight:800;font-size:13px;display:flex;align-items:center;justify-content:center}
 .step p{margin:2px 0;line-height:1.45;font-size:15px}
+.step.done p{color:var(--muted);text-decoration:line-through}
+.step.done .n{background:var(--line);color:var(--muted)}
 .favbtn{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:var(--card);border-radius:99px;padding:8px 14px;font-weight:600;font-size:14px}
 .favbtn.on{background:var(--accent-soft);border-color:var(--accent);color:var(--accent)}
 .bubble{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:9px 12px;margin-bottom:8px}
 .bubble .h{font-size:12px;font-weight:700;margin-bottom:2px}
 .bubble.stef .h{color:var(--stef)} .bubble.partner .h{color:var(--partner)}
 .rx{display:flex;gap:5px;flex-wrap:wrap;margin-top:6px}
-.rx button{border:1px solid var(--line);background:var(--bg);border-radius:99px;padding:2px 8px;font-size:13px}
+.rx button{border:1px solid var(--line);background:var(--bg);border-radius:99px;padding:6px 11px;font-size:14px;min-height:32px}
 .rx button.mine{background:var(--accent-soft);border-color:var(--accent)}
-.stars button{font-size:26px;color:var(--line);padding:0 2px}
+.stars button{font-size:30px;color:var(--muted);padding:4px;min-width:44px;min-height:44px}
 .stars button.on{color:var(--gold)}
 .tabs{display:flex;background:var(--line);border-radius:12px;padding:3px;margin-bottom:12px}
 .tabs button{flex:1;padding:8px 4px;border-radius:10px;font-size:13px;font-weight:600;color:var(--muted)}
@@ -183,7 +196,7 @@ pre.origtxt{white-space:pre-wrap;font:inherit;font-size:13px;background:var(--ca
 .empty-state{text-align:center;color:var(--muted);padding:40px 10px}
 .note{background:var(--note-bg);border:1px solid var(--note-line);border-radius:12px;padding:10px 12px;font-size:13px;margin-bottom:12px;line-height:1.4}
 .ttabs{display:flex;gap:18px;align-items:baseline;margin:2px 0 12px}
-.ttabs button{font-size:24px;font-weight:800;color:var(--muted);opacity:.45;padding:0;letter-spacing:-.3px}
+.ttabs button{font-size:24px;font-weight:800;color:var(--muted);padding:0;letter-spacing:-.3px}
 .ttabs button.on{color:var(--ink);opacity:1}
 .rate{font-size:12px;color:var(--muted);margin-top:3px}.rate .st{color:var(--gold);letter-spacing:-.5px}
 .jgroup{font-size:11px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:var(--muted);margin:14px 0 2px}
@@ -201,7 +214,7 @@ pre.origtxt{white-space:pre-wrap;font:inherit;font-size:13px;background:var(--ca
   <div id="top">
     <h1>Pizzico<span>.</span></h1>
     <button id="bookchip" class="chip" data-act="sheet" data-v="books" style="max-width:190px;overflow:hidden;text-overflow:ellipsis"></button>
-    <button id="bookbtn" data-act="sheet" data-v="book" aria-label="Settings" style="color:var(--muted);display:flex"></button>
+    <button id="bookbtn" data-act="sheet" data-v="book" aria-label="Settings" style="color:var(--muted);display:flex;padding:8px;margin:-8px -8px -8px 0"></button>
   </div>
   <div id="main"></div>
   <div id="nav"></div>
@@ -316,8 +329,8 @@ function allTags(r){ return [...r.meals,...r.mains,...r.diets,...(r.cuisine?[r.c
 function allCustom(){ return [...new Set(recipes.flatMap(r=>r.custom))]; }
 
 const THEMES={
-  light:{bg:'#fcf5f8',card:'#ffffff',ink:'#1c1519',muted:'#85707b',line:'#f1dfe8',accent:'#d01d78','accent-soft':'#fde4f0','on-accent':'#ffffff',danger:'#b3261e','toast-link':'#ff7eb6',outer:'#1c1519',tilemix:'100%','note-bg':'#fff9e8','note-line':'#f0e0a8','tag-ink':'#9e1460',partner:'#a65a14',stef:'#3b6fb6',third:'#26795e'},
-  dark:{bg:'#1c1519',card:'#271d23',ink:'#f6eaf0',muted:'#a8909c',line:'#3a2b33',accent:'#ff7eb6','accent-soft':'#4a1f36','on-accent':'#1c1519',danger:'#ff8a80','toast-link':'#b8156c',outer:'#0f0b0d',tilemix:'22%','note-bg':'#3a3122','note-line':'#5a4a2a','tag-ink':'#ff9cc8',partner:'#e39a4f',stef:'#86aee6',third:'#62c29c'}
+  light:{bg:'#fcf5f8',card:'#ffffff',ink:'#1c1519',muted:'#735d69',line:'#f1dfe8',field:'#9c8090',gold:'#a87200',green:'#2f7a4a','err-bg':'#fdeaea','err-line':'#f0b8b8',accent:'#c2186f','accent-soft':'#fde4f0','on-accent':'#ffffff',danger:'#b3261e','toast-link':'#ff7eb6',outer:'#1c1519',tilemix:'100%','note-bg':'#fff9e8','note-line':'#f0e0a8','tag-ink':'#9e1460',partner:'#a65a14',stef:'#3b6fb6',third:'#26795e'},
+  dark:{bg:'#1c1519',card:'#271d23',ink:'#f6eaf0',muted:'#b39aa7',line:'#3a2b33',field:'#7a6470',gold:'#e9a825',green:'#5fb07c','err-bg':'#3a1d20','err-line':'#7a3a3f',accent:'#ff7eb6','accent-soft':'#4a1f36','on-accent':'#1c1519',danger:'#ff8a80','toast-link':'#b8156c',outer:'#0f0b0d',tilemix:'22%','note-bg':'#3a3122','note-line':'#5a4a2a','tag-ink':'#ff9cc8',partner:'#e39a4f',stef:'#86aee6',third:'#62c29c'}
 };
 const DARKQ=window.matchMedia?matchMedia('(prefers-color-scheme: dark)'):null;
 function isDark(){ return S.mode==='dark'||(S.mode==='auto'&&!!(DARKQ&&DARKQ.matches)); }
@@ -420,19 +433,29 @@ function render(){
   $('#bookbtn').style.display=member?'':'none'; $('#bookbtn').innerHTML=ic('settings',22);
   const tabs=[['library','bookOpen','Library'],['cant','fridge','Fridge'],['add','plus','Add'],['plan','calendar','Plan'],['shop','bag','List']];
   const shopLeft=S.shop.filter(i=>!i.done).length;
-  $('#nav').innerHTML = !member ? '' : tabs.map(([k,i,l])=>`<button class="${k==='add'?'add':''} ${(S.tab===k||(k==='library'&&S.tab==='journal'))&&!S.view?'on':''}" data-act="tab" data-v="${k}" style="position:relative"><span class="ic">${ic(i,k==='add'?26:23,'')}</span>${k==='add'?'':l}${k==='shop'&&shopLeft?`<i class="badge">${shopLeft}</i>`:''}</button>`).join('');
+  $('#nav').innerHTML = !member ? '' : tabs.map(([k,i,l])=>`<button class="${k==='add'?'add':''} ${(S.tab===k||(k==='library'&&S.tab==='journal'))&&!S.view?'on':''}" data-act="tab" data-v="${k}" style="position:relative" ${k==='add'?'aria-label="Add a recipe"':''} ${(S.tab===k||(k==='library'&&S.tab==='journal'))&&!S.view?'aria-current="page"':''}><span class="ic">${ic(i,k==='add'?26:23,'')}</span>${k==='add'?'':l}${k==='shop'&&shopLeft?`<i class="badge">${shopLeft}</i>`:''}</button>`).join('');
   const main=$('#main'); const scroll=main.scrollTop;
-  const nb=S.notice[S.me]?`<div class="note" style="display:flex;gap:8px;justify-content:space-between"><span>${esc(S.notice[S.me])}</span><button data-act="dismissnotice" aria-label="Dismiss">${ic('x',16)}</button></div>`:'';
+  const nb=S.notice[S.me]?`<div class="note" style="display:flex;gap:8px;justify-content:space-between"><span>${esc(S.notice[S.me])}</span><button data-act="dismissnotice" aria-label="Dismiss" style="padding:6px;margin:-6px">${ic('x',16)}</button></div>`:'';
   main.innerHTML = nb + (!member ? viewOnboard() : S.view ? viewDetail(byId(S.view)) : ({library:viewLibrary,cant:viewCant,add:viewAdd,plan:viewPlan,journal:viewJournal,shop:viewShop,trash:viewTrash})[S.tab]());
   main.scrollTop = scroll;
-  $('#overlay').innerHTML = (member&&S.sheet?viewSheet():'') + (S.cook?viewCook():'') + (S.toast?`<div class="toast">${esc(S.toast)}${S.toastUndo?` <button data-act="undodel" style="margin-left:10px;color:var(--toast-link);font-weight:700">Undo</button>`:''}</div>`:'');
+  $('#overlay').innerHTML = (member&&S.sheet?viewSheet():'') + (S.cook?viewCook():'') + (S.toast?`<div class="toast" role="status" aria-live="polite">${esc(S.toast)}${S.toastUndo?` <button data-act="undodel" style="margin:-8px -6px -8px 6px;padding:8px 6px;color:var(--toast-link);font-weight:700">Undo</button>`:''}</div>`:'');
+  a11yPass();
 }
 
+// ---------- accessibility pass: label inputs, mark toggle state ----------
+function a11yPass(){
+  document.querySelectorAll('#phone input:not([type=checkbox]):not([type=file]), #phone textarea').forEach(el=>{
+    if(el.getAttribute('aria-label')) return;
+    const l=el.closest('.field')&&el.closest('.field').querySelector(':scope > label');
+    const t=(l&&l.textContent.trim())||el.placeholder||''; if(t) el.setAttribute('aria-label',t);
+  });
+  document.querySelectorAll('#phone .chip[data-act=togf], #phone .chip[data-act=favonly], #phone .chip[data-act=dtog], #phone .tabs button, #phone .ttabs button').forEach(el=>el.setAttribute('aria-pressed',el.classList.contains('on')));
+}
 function card(r){
   const hs = Object.keys(r.favs).filter(k=>r.favs[k]).map(k=>`<span class="heart ${k}">${USERS[k].initial}</span>`).join('');
   const av=avgStars(r);
   return `<button class="card" data-act="open" data-v="${r.id}">
-    <div class="tile" style="${tileStyle(r)}">${tileText(r)}</div>
+    <div class="tile" aria-hidden="true" style="${tileStyle(r)}">${tileText(r)}</div>
     <div class="hearts">${hs}</div>
     <div class="body"><h3>${esc(r.title)}</h3>
     <div class="meta"><span>${ic('clock',13)} ${fmtTime(r.time)}</span><span>${esc(r.effort)}</span></div>
@@ -464,7 +487,7 @@ function viewDetail(r){
   const rxRow=(obj,act,extra='')=>REACTS.map(e=>{const who=(obj[e]||[]); return `<button class="${who.includes(me)?'mine':''}" data-act="${act}" data-e="${e}" ${extra}>${e}${who.length?' '+who.length:''}</button>`}).join('');
   return `
   <button class="back" data-act="back">${ic('chevL',16)}Back</button>
-  <div class="hero" style="${tileStyle(r)}">${tileText(r)}</div>
+  <div class="hero" aria-hidden="true" style="${tileStyle(r)}">${tileText(r)}</div>
   <div class="photorow">${r.photo?`<label for="photoin">${ic('camera',15)}Change photo</label><button data-act="photorm">Remove photo</button>`:`<label for="photoin">${ic('camera',15)}Add a photo</label><span class="muted">Shows instead of the emoji</span>`}<input id="photoin" type="file" accept="image/*" hidden></div>
   <div class="row between"><h1 style="margin:0;font-size:22px;line-height:1.2">${esc(r.title)}</h1></div>
   <div class="muted" style="margin:4px 0 8px">Saved from ${esc(r.source)} by ${USERS[r.added].name}${r.editedBy?` · edited by ${USERS[r.editedBy].name}`:''}${r.url?` · <a href="${esc(r.url)}" target="_blank" rel="noopener" style="color:var(--accent)">Open original ${ic('ext',13)}</a>`:''}</div>
@@ -490,7 +513,7 @@ function viewDetail(r){
   <div class="tabs" style="margin:0 0 4px"><button class="${S.units==='metric'?'on':''}" data-act="units" data-v="metric">Metric</button><button class="${S.units==='imperial'?'on':''}" data-act="units" data-v="imperial">Imperial</button></div>
   ${r.ingredients.map((i,ix)=>`<label class="ing ${chk[ix]?'done':''}"><input type="checkbox" data-act="chk" data-i="${ix}" ${chk[ix]?'checked':''}><span class="q">${esc(scaleQ(i.q,f))}</span><span>${esc(i.name)}</span></label>`).join('')}
   <h2>Method</h2>
-  ${r.method.map((s,ix)=>`<div class="step" style="${done[ix]?'opacity:.45':''}" data-act="step" data-i="${ix}"><div class="n">${done[ix]?ic('check',14):ix+1}</div><p>${esc(fixTemp(s))}</p></div>`).join('')}
+  ${r.method.map((s,ix)=>`<div class="step${done[ix]?' done':''}" data-act="step" data-i="${ix}"><div class="n">${done[ix]?ic('check',14):ix+1}</div><p>${esc(fixTemp(s))}</p></div>`).join('')}
   ${r.original?`<details class="orig"><summary>Original text</summary><pre class="origtxt">${esc(r.original)}</pre></details>`:''}
   <h2>Reactions</h2>
   <div class="rx" style="margin-top:0">${rxRow(r.reacts,'rxr')}</div>
@@ -520,7 +543,7 @@ function viewCant(){
   return `<h2 style="margin-top:6px">What can I cook?</h2><div class="muted" style="margin-bottom:10px">Add what's in the fridge. Staples like salt, oil and flour are ignored.</div>
   <div class="row" style="margin-bottom:8px"><input id="ci" class="search" style="flex:1;margin:0" placeholder="e.g. chicken, spinach, eggs" data-in="ci" value="${esc(S.cantInput)}"><button class="btn sm" data-act="cantadd">Add</button></div>
   <div class="chips" style="flex-wrap:wrap">${have.map(h=>`<button class="chip on" data-act="cantrm" data-v="${esc(h)}">${esc(h)} ${ic('x',13)}</button>`).join('')}</div>
-  <div class="row between" style="margin:10px 0 6px"><span class="muted">Quick add:</span><button class="back" style="padding:0;font-size:13px" data-act="quickedit">${S.quickEdit?'Done':'Edit'}</button></div>
+  <div class="row between" style="margin:10px 0 6px"><span class="muted">Quick add:</span><button class="back tlink" style="font-size:13px" data-act="quickedit">${S.quickEdit?'Done':'Edit'}</button></div>
   ${S.quickEdit?`<div class="chips" style="flex-wrap:wrap">${S.quick.map(q=>`<button class="chip" data-act="quickrm" data-v="${esc(q)}">${esc(q)} ${ic('x',13)}</button>`).join('')}</div>
   <div class="row" style="margin:6px 0 4px"><input class="search" style="flex:1;margin:0" placeholder="Add a quick add, e.g. halloumi" data-in="quickinput" value="${esc(S.quickInput)}"><button class="btn sm" data-act="quickadd">Add</button></div>
   ${!S.quick.length?'<div class="muted">No quick adds yet.</div>':''}`
@@ -533,10 +556,10 @@ function viewPlan(){
   return `<h2 style="margin-top:6px">This week</h2><div class="muted" style="margin-bottom:10px">Tap a slot to pick a recipe from the recipe book.</div>
   <button class="btn ghost" data-act="planshop" style="margin-bottom:10px">${ic('bag',16)}Add this week's meals to the shopping list</button>
   ${DAYS.map((d,di)=>`<div class="plan-day ${di===TODAY_IDX?'today':''}"><b>${d}${di===TODAY_IDX?' · today':''}</b>
-   ${SLOTS.map(s=>{const id=plan[d+'-'+s]; const r=id&&byId(id); return `<div class="slot"><span class="lbl">${s}</span>${r?`<button class="pick" data-act="open" data-v="${r.id}">${r.emoji} ${esc(r.title)}</button><button data-act="planrm" data-k="${d}-${s}" class="muted" aria-label="Remove">${ic('x',15)}</button>`:`<button class="pick empty" data-act="planpick" data-k="${d}-${s}">+ Add</button>`}</div>`}).join('')}</div>`).join('')}`;
+   ${SLOTS.map(s=>{const id=plan[d+'-'+s]; const r=id&&byId(id); return `<div class="slot"><span class="lbl">${s}</span>${r?`<button class="pick" data-act="open" data-v="${r.id}">${r.emoji} ${esc(r.title)}</button><button data-act="planrm" data-k="${d}-${s}" class="muted" aria-label="Remove" style="padding:8px;margin:-8px -6px">${ic('x',15)}</button>`:`<button class="pick empty" data-act="planpick" data-k="${d}-${s}">+ Add</button>`}</div>`}).join('')}</div>`).join('')}`;
 }
 
-function stars(n){ const k=Math.round(n); return '★'.repeat(k)+'☆'.repeat(5-k); }
+function stars(n){ const k=Math.round(n); return `<span role="img" aria-label="${k} out of 5 stars">${'★'.repeat(k)+'☆'.repeat(5-k)}</span>`; }
 function timesTxt(n){ return n===1?'cooked once':n===2?'cooked twice':'cooked '+n+' times'; }
 const MON=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 const MONTHS=['January','February','March','April','May','June','July','August','September','October','November','December'];
@@ -573,7 +596,7 @@ function viewOnboard(){
     <button class="btn" data-act="onbcreate">Create recipe book</button>`;
   if(o.step==='join') return `<button class="back" data-act="onbback">${ic('chevL',16)}Back</button>${head}
     <div class="field"><label>Invite code</label><input class="codein" data-in="onb_code" value="${esc(o.code)}" placeholder="PIZ-XXXX" autocapitalize="characters" autocomplete="off"></div>
-    ${o.err?`<div class="note" style="background:#fdeaea;border-color:#f0b8b8">${esc(o.err)}</div>`:''}
+    ${o.err?`<div class="note err" role="alert">${esc(o.err)}</div>`:''}
     <button class="btn" data-act="onbjoin">Join recipe book</button>`;
   return head+`<div class="field"><label>Your name</label><input data-in="onb_name" value="${esc(o.name)}" placeholder="What should we call you?"></div>
     <button class="btn" data-act="onbstep" data-v="create">Start a recipe book</button>
@@ -587,7 +610,7 @@ function viewShop(){
   return `<h2 style="margin-top:6px">Shopping list</h2>
   <div class="muted" style="margin-bottom:10px">${S.book.members.length>=3?'Shared by everyone in the book · ':S.book.members.length===2?'Shared by both of you · ':''}${left} item${left===1?'':'s'} left · quantities merge automatically</div>
   <div class="row" style="margin-bottom:6px"><input class="search" style="flex:1;margin:0" placeholder="Add an item…" data-in="shopinput" value="${esc(S.shopInput)}"><button class="btn sm" data-act="shopmanual">Add</button></div>
-  ${!S.shop.length?`<div class="empty-state">${ic('bag',36,'es-ic')}Nothing on the list.<br>Add a recipe's ingredients from its page,<br>or send the whole week's plan.</div>`:ORDER.filter(a=>groups[a]).map(a=>`<div class="aisle">${a}</div>${groups[a].map(([it,ix])=>`<label class="ing ${it.done?'done':''}"><input type="checkbox" data-act="shopchk" data-i="${ix}" ${it.done?'checked':''}><span class="q">${esc(it.n!=null?fmtQty(it.n,it.unit):it.raw)}</span><span style="flex:1">${esc(it.name)}${it.srcs.length?`<div class="muted">${esc(it.srcs.join(', '))}</div>`:''}</span><button data-act="shoprm" data-i="${ix}" class="muted" aria-label="Remove">${ic('x',15)}</button></label>`).join('')}`).join('')}
+  ${!S.shop.length?`<div class="empty-state">${ic('bag',36,'es-ic')}Nothing on the list.<br>Add a recipe's ingredients from its page,<br>or send the whole week's plan.</div>`:ORDER.filter(a=>groups[a]).map(a=>`<div class="aisle">${a}</div>${groups[a].map(([it,ix])=>`<label class="ing ${it.done?'done':''}"><input type="checkbox" data-act="shopchk" data-i="${ix}" ${it.done?'checked':''}><span class="q">${esc(it.n!=null?fmtQty(it.n,it.unit):it.raw)}</span><span style="flex:1">${esc(it.name)}${it.srcs.length?`<div class="muted">${esc(it.srcs.join(', '))}</div>`:''}</span><button data-act="shoprm" data-i="${ix}" class="muted" aria-label="Remove" style="padding:8px;margin:-8px -6px">${ic('x',15)}</button></label>`).join('')}`).join('')}
   ${S.shop.length?`<div class="row" style="margin-top:14px"><button class="btn ghost" data-act="shopclear">Clear ticked</button><button class="btn ghost" data-act="shopclearall">Clear all</button></div>`:''}`;
 }
 
@@ -599,12 +622,13 @@ function viewAdd(){
   if(a.step==='other') return viewAddOther();
   if(a.step==='caption') return viewAddCaption();
   return `${addSteps(1)}
-  <h2 class="addh">Paste the reel link</h2>
+  <h2 class="addh">Paste the Instagram link</h2>
   <div class="how">In Instagram, tap ${ic('send',16)} <b>Share</b>, then <b>Copy link</b>.</div>
   <div class="pastebox"><input data-in="addurl" inputmode="url" autocomplete="off" autocapitalize="off" placeholder="instagram.com/reel/…" value="${esc(a.url)}"><button data-act="pasteurl">${ic('clipboard',16)}Paste</button></div>
   <button class="btn" data-act="addnext">Next</button>
-  <div class="addfoot"><button class="quiet" data-act="addstep" data-v="other">Other ways to add</button>
-  <button class="quiet proto" data-act="samplelink">Prototype: use a sample link</button></div>`;
+  <div class="addfoot alt-way"><div class="muted">Not from Instagram?</div>
+  <button class="btn alt" data-act="addstep" data-v="other">Add from a website or screenshot</button></div>
+  <button class="quiet proto" data-act="samplelink" style="margin-top:10px">Prototype: use a sample link</button>`;
 }
 function viewAddCaption(){
   const a=S.add, n=a.shots.length, ig=a.src!=='shots';
@@ -643,7 +667,7 @@ function viewReview(){
   ${grp('Effort','effort',OPTS.efforts,false)}
   <div class="field"><label>Ingredients (one per line)</label><textarea data-in="d_ing">${esc(d.ingText)}</textarea></div>
   <div class="field"><label>Method (one step per line)</label><textarea data-in="d_met">${esc(d.metText)}</textarea></div>
-  ${d.original?`<button class="back" style="padding:0;margin-bottom:10px" data-act="toggleorig">${S.add.showOrig?'Hide original text':'Show original text'}${ic(S.add.showOrig?'chevD':'chevR',15)}</button>${S.add.showOrig?`<pre class="origtxt">${esc(d.original)}</pre>`:''}`:''}
+  ${d.original?`<button class="back tlink" style="margin:0 0 4px" data-act="toggleorig">${S.add.showOrig?'Hide original text':'Show original text'}${ic(S.add.showOrig?'chevD':'chevR',15)}</button>${S.add.showOrig?`<pre class="origtxt">${esc(d.original)}</pre>`:''}`:''}
   ${grp('Meal type','meals',OPTS.meals)}${grp('Main ingredient','mains',OPTS.mains)}${grp('Diet','diets',OPTS.diets)}${grp('Cuisine','cuisine',OPTS.cuisines,false)}
   <div class="field"><label>Custom labels (comma separated)</label><input data-in="d_custom" value="${esc(d.customText)}" placeholder="Date night, Meal prep…"></div>
   <button class="btn" data-act="save">${d.editId?'Save changes':'Save to recipe book'}</button><div style="height:20px"></div>`;
@@ -658,7 +682,7 @@ function viewSheet(){
     <div class="row"><button class="btn ghost" data-act="clear">Reset</button><button class="btn" data-act="closesheet">Show ${filtered().length} recipes</button></div>`;
   }
   if(s==='rate'){
-    inner=`<h3>You cooked it!</h3><div class="stars">${[1,2,3,4,5].map(n=>`<button class="${S.rateDraft.stars>=n?'on':''}" data-act="star" data-v="${n}">★</button>`).join('')}</div>
+    inner=`<h3>You cooked it!</h3><div class="stars">${[1,2,3,4,5].map(n=>`<button class="${S.rateDraft.stars>=n?'on':''}" data-act="star" data-v="${n}" aria-label="${n} star${n>1?'s':''}" aria-pressed="${S.rateDraft.stars===n}">${S.rateDraft.stars>=n?'★':'☆'}</button>`).join('')}</div>
     <div class="field" style="margin-top:8px"><label>Tweaks or thoughts</label><input data-in="ratenote" placeholder="Less chilli, more garlic…" value="${esc(S.rateDraft.note)}"></div><button class="btn" data-act="logcook">Save to journal</button>`;
   }
   if(s==='planadd'){
@@ -680,7 +704,7 @@ function viewSheet(){
       <div class="muted" style="font-size:13px;margin:-2px 0 8px">No such thing as too many cooks. Use this code to invite whoever you want to cook with.</div>
       <div class="row between" style="padding:9px 12px;background:var(--card);border:1px solid var(--line);border-radius:12px">
         <span style="font:600 14px ui-monospace,Menlo,Consolas,monospace;letter-spacing:1px;color:var(--muted)">${esc(S.book.code)}</span>
-        <span class="row" style="gap:14px"><button class="back" style="padding:0;font-size:13px" data-act="copycode">Copy</button><button class="back" style="padding:0;font-size:13px" data-act="sharecode">Share</button><button class="back" style="padding:0;font-size:13px;color:var(--muted)" data-act="resetcode">New code</button></span>
+        <span class="row" style="gap:14px"><button class="back tlink" style="font-size:13px" data-act="copycode">Copy</button><button class="back tlink" style="font-size:13px" data-act="sharecode">Share</button><button class="back tlink" style="font-size:13px;color:var(--muted)" data-act="resetcode">New code</button></span>
       </div></div>
     <button class="btn ghost" style="color:var(--danger)" data-act="sheet" data-v="leave">Leave this recipe book</button>`;
   }
@@ -702,14 +726,14 @@ function viewSheet(){
     inner=`<h3>Delete ‘${esc(r.title)}’?</h3><div class="muted" style="margin-bottom:14px">It leaves the recipe book for everyone, but stays in ‘Recently deleted’ in Settings for 7 days so it can be added again.</div>
     <div class="row"><button class="btn ghost" data-act="closesheet">Keep it</button><button class="btn" style="background:#b3261e;color:#fff" data-act="delyes">Delete</button></div>`;
   }
-  return `<div class="sheet-bg" data-act="closesheet-bg"><div class="sheet">${inner}</div></div>`;
+  return `<div class="sheet-bg" data-act="closesheet-bg"><div class="sheet" role="dialog" aria-modal="true"><button class="xclose" data-act="closesheet" aria-label="Close">${ic('x',20)}</button>${inner}</div></div>`;
 }
 
 function viewCook(){
   const r=byId(S.cook.id), i=S.cook.i;
-  return `<div class="cook"><div class="row between"><button data-act="cookexit" style="color:#fff;font-size:15px;display:inline-flex;align-items:center;gap:4px">${ic('x',16)}Exit</button><span style="color:#bbb">${esc(r.title)}</span></div>
+  return `<div class="cook"><div class="row between"><button data-act="cookexit" style="color:#fff;font-size:15px;display:inline-flex;align-items:center;gap:4px;padding:10px 4px;margin:-10px 0">${ic('x',16)}Exit</button><span style="color:#bbb">${esc(r.title)}</span></div>
   <div class="big"><small>Step ${i+1} of ${r.method.length}</small>${esc(fixTemp(r.method[i]))}</div>
-  <div class="row"><button class="btn ghost" style="flex:1;opacity:${i?1:.4}" data-act="cookprev">${ic('chevL',16)}Back</button><button class="btn" style="flex:2" data-act="cooknext">${i===r.method.length-1?'Finish':'Next'+ic('chevR',16)}</button></div></div>`;
+  <div class="row"><button class="btn ghost" style="flex:1" ${i?'':'disabled'} data-act="cookprev">${ic('chevL',16)}Back</button><button class="btn" style="flex:2" data-act="cooknext">${i===r.method.length-1?'Finish':'Next'+ic('chevR',16)}</button></div></div>`;
 }
 
 // ---------- parsing (simulated; real app will use Claude) ----------
@@ -758,9 +782,6 @@ document.addEventListener('click',e=>{
     case 'shopclear': S.shop=S.shop.filter(i=>!i.done); break;
     case 'shopclearall': S.shop=[]; break;
     case 'delyes': {const id=S.view, rr=byId(id); const slots=Object.keys(plan).filter(k=>plan[k]===id); trash.unshift({r:rr,by:me,day:S.day,slots}); recipes=recipes.filter(x=>x.id!==id); slots.forEach(k=>{delete plan[k];}); S.lastDel=id; S.view=null; S.sheet=null; toast('Recipe deleted',true,7000); return;}
-    case 'openjournal': S.sheet=null; S.view=null; S.tab='journal'; break;
-    case 'invite': toast('Invite links arrive in the real build'); return;
-    case 'simshare': S.add.shareUrl='https://www.instagram.com/reel/DEMO/'; S.add.mode='paste'; break;
     case 'edit': {const x=byId(+v); S.add.draft={editId:x.id,title:x.title,source:x.source,url:x.url||'',time:x.time,serves:x.serves,effort:x.effort,ingText:x.ingredients.map(i=>(i.q?i.q+' ':'')+i.name).join('\n'),metText:x.method.join('\n'),meals:[...x.meals],mains:[...x.mains],diets:[...x.diets],cuisine:x.cuisine,customText:x.custom.join(', ')}; S.view=null; S.tab='add'; break;}
     case 'demotoggle': demoOpen=!demoOpen; break;
     case 'who': demoOpen=window.matchMedia('(min-width:500px)').matches; S.dev[S.me].units=S.units; S.me=v; S.units=S.dev[v].units; S.tab='library'; S.view=null; S.sheet=null; S.cook=null; S.add.draft=null; S.add.shareUrl=''; Object.assign(S.add,{text:'',shots:[],url:'',web:'',step:'link',src:'ig',pasteOpen:false}); loadBook(); break;
@@ -780,7 +801,6 @@ document.addEventListener('click',e=>{
       if(!USERS[me].name){USERS[me].name=o.name.trim(); USERS[me].initial=o.name.trim()[0].toUpperCase();}
       b.members.push(me); S.dev[me].bookId=b.id; o.open=false; o.step='welcome'; o.code=''; loadBook(); S.tab='library'; S.view=null; toast('Joined ‘'+b.name+'’'); return;}
     case 'mode': S.mode=v; break;
-    case 'font': S.font=v; break;
     case 'rmask': S.rmTarget=v; S.sheet='removemember'; break;
     case 'rmyes': {const b=S.book; if(b.owner!==me) break; const k=S.rmTarget; b.members=b.members.filter(x=>x!==k); S.notice[k]='You were removed from ‘'+b.name+'’.'; S.sheet='book'; toast(USERS[k].name+' removed'); return;}
     case 'dismissnotice': delete S.notice[me]; break;
@@ -793,7 +813,6 @@ document.addEventListener('click',e=>{
     case 'copycode': toast('Code copied'); return;
     case 'sharecode': toast('Your phone\'s share sheet opens here'); return;
     case 'resetcode': S.book.code=genCode(); toast('New code made. The old one stops working.'); break;
-    case 'bookopen': S.book.open=!S.book.open; break;
     case 'leaveyes': {const b=S.book; b.members=b.members.filter(k=>k!==me); if(b.owner===me&&b.members.length) b.owner=b.members[0]; if(!b.members.length){S.books=S.books.filter(x=>x!==b);} S.dev[me].bookId=null; S.onb[me].step='welcome'; S.onb[me].open=false; S.onb[me].err=''; S.sheet=null; S.view=null; S.tab='library'; loadBook(); break;}
     case 'tab': S.tab=v; S.view=null; if(v!=='add') S.add.draft=null; break;
     case 'open': S.view=+v; break;
@@ -824,10 +843,7 @@ document.addEventListener('click',e=>{
     case 'quickrm': S.quick=S.quick.filter(x=>x!==v); break;
     case 'quickadd': {const t=S.quickInput.trim().toLowerCase(); if(t){t.split(',').map(x=>x.trim()).filter(x=>x&&!S.quick.includes(x)).forEach(x=>S.quick.push(x)); S.quickInput='';} break;}
     case 'cantrm': S.cant=S.cant.filter(x=>x!==v); break;
-    case 'addmode': S.add.mode=v; break;
     case 'sample': S.add.text=SAMPLE; break;
-    case 'parse': if(!S.add.text.trim()){toast('Paste some text first');return;} S.add.draft=parseText(S.add.text); S.add.draft.url=S.add.shareUrl; break;
-    case 'parselink': if(/instagram\.com/i.test(S.add.url)){S.add.draft=blankDraft(); S.add.draft.source='Instagram link'; toast('Saved the link. Paste the caption to fill the recipe in.'); S.add.mode='paste'; S.add.draft=null; S.add.shareUrl=S.add.url;} else if(S.add.url.trim()){S.add.draft=parseText(SAMPLE); S.add.draft.source='Website'; S.add.draft.url=S.add.url; } else {toast('Paste a link first');return;} break;
     case 'addstep': S.add.step=v; if(v==='link') S.add.src='ig'; break;
     case 'samplelink': S.add.url='https://www.instagram.com/reel/C9xPizzico/'; break;
     case 'pasteurl': (async()=>{ try{ const t=(await navigator.clipboard.readText()).trim(); if(t){S.add.url=t; render();} else toast('Nothing copied yet'); }catch(err){ toast('Long-press the box and tap Paste'); const i=document.querySelector('[data-in=addurl]'); if(i) i.focus(); } })(); return;
@@ -846,7 +862,6 @@ document.addEventListener('click',e=>{
     case 'shotmv': {const i=+el.dataset.i,j=i+(+v); const sh=S.add.shots; if(j>=0&&j<sh.length){[sh[i],sh[j]]=[sh[j],sh[i]];} break;}
     case 'shotsample': S.add.shots=[1,2,3].map(k=>({src:null,label:'Sample screenshot '+k})); break;
     case 'toggleorig': S.add.showOrig=!S.add.showOrig; break;
-    case 'parseshot': S.add.draft=parseText(SAMPLE); S.add.draft.source='Screenshot'; break;
     case 'blank': S.add.draft=blankDraft(); break;
     case 'draftcancel': {const id=S.add.draft&&S.add.draft.editId; S.add.draft=null; if(id){S.view=id;S.tab='library';} break;}
     case 'dtog': {const d=S.add.draft,k=el.dataset.k; if(el.dataset.m==='1'){const i=d[k].indexOf(v); i<0?d[k].push(v):d[k].splice(i,1);} else d[k]=(d[k]===v?'':v); break;}
@@ -879,6 +894,7 @@ document.addEventListener('input',e=>{
   m[k]&&m[k]();
 });
 document.addEventListener('keydown',e=>{
+  if(e.key==='Escape'&&(S.sheet||S.cook)){ S.sheet=null; S.cook=null; render(); return; }
   if(e.key!=='Enter') return;
   if(e.target.dataset.in==='ci'){S.cantInput.trim()&&document.querySelector('[data-act=cantadd]').click();}
   if(e.target.dataset.in==='quickinput'){document.querySelector('[data-act=quickadd]').click();}

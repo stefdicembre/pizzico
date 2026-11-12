@@ -616,6 +616,8 @@ function viewShop(){
 
 function addSteps(n){ return `<div class="steps"><span>Step ${n} of 3</span>${[1,2,3].map(i=>`<i class="${i<=n?'on':''}"></i>`).join('')}</div>`; }
 const isIG = u => /instagram\.com|instagr\.am/i.test(u);
+// Pull just the Instagram link out of whatever was copied, minus tracking (?igsh=…) and #bits.
+const cleanIG = t => { const m=String(t).match(/(?:https?:\/\/)?(?:www\.)?(?:instagram\.com|instagr\.am)\/[^\s"'<>]+/i); if(!m) return String(t).trim(); let u=m[0].replace(/[?#].*$/,'').replace(/[).,!]+$/,''); if(!/^https?:\/\//i.test(u)) u='https://'+u; return u.replace(/^http:/i,'https:'); };
 function viewAdd(){
   const a=S.add;
   if(a.draft) return viewReview();
@@ -846,8 +848,8 @@ document.addEventListener('click',e=>{
     case 'sample': S.add.text=SAMPLE; break;
     case 'addstep': S.add.step=v; if(v==='link') S.add.src='ig'; break;
     case 'samplelink': S.add.url='https://www.instagram.com/reel/C9xPizzico/'; break;
-    case 'pasteurl': (async()=>{ try{ const t=(await navigator.clipboard.readText()).trim(); if(t){S.add.url=t; render();} else toast('Nothing copied yet'); }catch(err){ toast('Long-press the box and tap Paste'); const i=document.querySelector('[data-in=addurl]'); if(i) i.focus(); } })(); return;
-    case 'addnext': {const u=S.add.url.trim(); if(!u){toast('Paste the link first');return;} if(!isIG(u)){toast('That isn’t an Instagram link. Try Other ways to add.',false,2800);return;} S.add.step='caption'; S.add.src='ig'; break;}
+    case 'pasteurl': (async()=>{ try{ const t=(await navigator.clipboard.readText()).trim(); if(t){S.add.url=cleanIG(t); render();} else toast('Nothing copied yet'); }catch(err){ toast('Long-press the box and tap Paste'); const i=document.querySelector('[data-in=addurl]'); if(i) i.focus(); } })(); return;
+    case 'addnext': {const u=cleanIG(S.add.url); S.add.url=u; if(!u){toast('Paste the link first');return;} if(!isIG(u)){toast('That isn’t an Instagram link. Try Other ways to add.',false,2800);return;} S.add.step='caption'; S.add.src='ig'; break;}
     case 'pastetoggle': S.add.pasteOpen=!S.add.pasteOpen; break;
     case 'linkonly': {const d=blankDraft(); d.source='Instagram'; d.url=S.add.url.trim(); d.linkOnly=true; S.add.draft=d; break;}
     case 'othershots': S.add.src='shots'; S.add.step='caption'; S.add.pasteOpen=false; break;

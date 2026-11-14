@@ -149,6 +149,10 @@ h2{font-size:18px;margin:18px 0 8px}
 .tabs button{flex:1;padding:8px 4px;border-radius:10px;font-size:13px;font-weight:600;color:var(--muted)}
 .tabs button.on{background:var(--card);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.1)}
 .note.warn{border-color:var(--accent);background:var(--accent-soft)}
+.spin{width:16px;height:16px;border:2px solid currentColor;border-right-color:transparent;border-radius:50%;display:inline-block;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){.spin{animation-duration:2.4s}}
+.btn[disabled]{opacity:1;cursor:progress}
 .note.warn ul{margin:6px 0 0 18px;padding:0}
 .shots{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:8px}
 .shot{position:relative;aspect-ratio:3/4;border-radius:12px;overflow:hidden;background:var(--card);border:1px solid var(--line);background-size:cover;background-position:center;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:12px;text-align:center}
@@ -641,7 +645,7 @@ function viewAddCaption(){
   return `<button class="back" data-act="addstep" data-v="${ig?'link':'other'}">${ic('chevL',16)}Back</button>${ig?addSteps(2):''}
   <h2 class="addh" style="margin-top:${ig?16:4}px">${ig?(a.pasteOpen?'Paste the caption':'Add the caption'):'Add screenshots'}</h2>
   ${a.pasteOpen?paste:tray}<input id="shotin" type="file" accept="image/*" multiple hidden>
-  <button class="btn" data-act="go">Read recipe${!a.pasteOpen&&n?` (${n})`:''}</button>
+  <button class="btn" data-act="go" ${a.busy?'disabled aria-busy="true"':''}>${a.busy?'<span class="spin" aria-hidden="true"></span>Reading the recipe…':`Read recipe${!a.pasteOpen&&n?` (${n})`:''}`}</button>${a.busy?`<div class="muted" role="status" style="text-align:center;margin-top:8px;font-size:13px">This takes about ${!a.pasteOpen&&n>1?'20':'10'} seconds.</div>`:''}
   ${ig?`<div class="addfoot" style="margin-top:14px"><button class="quiet" data-act="pastetoggle">${a.pasteOpen?'Use screenshots instead':'Copied the caption? Paste it instead'}</button>
   <button class="quiet" data-act="linkonly">Skip for now and save just the link</button></div>`:''}
   <button class="quiet proto" data-act="${a.pasteOpen?'sample':'shotsample'}">Prototype: ${a.pasteOpen?'use a sample caption':'use 3 sample screenshots'}</button>`;
@@ -650,7 +654,7 @@ function viewAddOther(){
   const a=S.add;
   return `<button class="back" data-act="addstep" data-v="link">${ic('chevL',16)}Back to Instagram</button>
   <h2 class="addh" style="margin-top:4px">Other ways to add</h2>
-  <div class="opt"><div class="row">${ic('globe',20)}<b>From a website</b></div><div class="pastebox"><input data-in="weburl" inputmode="url" autocomplete="off" autocapitalize="off" placeholder="Paste the recipe link" value="${esc(a.web)}"><button data-act="webgo">Read</button></div></div>
+  <div class="opt"><div class="row">${ic('globe',20)}<b>From a website</b></div><div class="pastebox"><input data-in="weburl" inputmode="url" autocomplete="off" autocapitalize="off" placeholder="Paste the recipe link" value="${esc(a.web)}"><button data-act="webgo" ${a.busy?'disabled aria-busy="true"':''}>${a.busy?'<span class="spin" aria-hidden="true"></span>Reading…':'Read'}</button></div></div>
   <button class="opt" data-act="othershots">${ic('image',20)}<b>From screenshots</b>${ic('chevR',18)}</button>
   <button class="opt" data-act="blank">${ic('pen',20)}<b>Type it in</b>${ic('chevR',18)}</button>`;
 }
@@ -660,9 +664,11 @@ function viewReview(){
   const grp=(label,key,list,multi=true)=>`<div class="field"><label>${label}</label><div class="chips" style="flex-wrap:wrap">${list.map(o=>{const on=multi?d[key].includes(o):d[key]===o;return `<button class="chip ${on?'on':''}" data-act="dtog" data-k="${key}" data-v="${esc(o)}" data-m="${multi?1:0}">${o}</button>`}).join('')}</div></div>`;
   const igFlow=!d.editId&&S.add.src!=='shots'&&S.add.step==='caption';
   return `<button class="back" data-act="draftcancel">${ic('chevL',16)}${d.editId?'Cancel':'Back'}</button>${igFlow?addSteps(3):''}<h2 class="addh" style="margin-top:${igFlow?16:4}px">${d.editId?'Edit recipe':d.linkOnly?'Name it and save':'Check and save'}</h2>
-  ${d.editId?'':`<div class="muted" style="margin:-2px 0 14px;font-size:14px">${d.linkOnly?'Just the link for now. Fill in the rest whenever you like.':d.shotCount?`Read from ${d.shotCount} screenshot${d.shotCount>1?'s':''}. Fix anything that looks off.`:'Fix anything that looks off.'}</div>`}
-  ${d.flags&&d.flags.length?`<div class="note warn">${ic('alert',15)} <b>Check these</b><ul>${d.flags.map(f=>`<li>${esc(f)}</li>`).join('')}</ul><div class="muted" style="margin-top:6px">Prototype: this flag is staged to show how it will look.</div></div>`:''}
-  ${d.origSteps?(()=>{const have=d.metText.split('\n').filter(x=>x.trim()).length;return have===d.origSteps?`<div class="note" style="background:var(--card);border-color:var(--line)">${ic('check',14)} The caption has ${d.origSteps} steps and you have ${have}.</div>`:`<div class="note warn">${ic('alert',15)} The caption has ${d.origSteps} steps but you have ${have}. Check the method below.</div>`})():''}
+  ${d.editId?'':`<div class="muted" style="margin:-2px 0 14px;font-size:14px">${d.linkOnly?'Just the link for now. Fill in the rest whenever you like.':d.shotCount?`Read from ${d.shotCount} screenshot${d.shotCount>1?'s':''}. Fix anything that looks off.`:d.readBy==='schema'?'Read from the recipe on that page. Fix anything that looks off.':'Fix anything that looks off.'}</div>`}
+  ${d.staged?`<div class="note">${ic('alert',15)} Prototype: this is the sample recipe, not yours. Real reading needs the reader set up.</div>`:''}
+  ${d.cutOff?`<div class="note warn">${ic('alert',15)} <b>This looks cut off.</b>${d.cutWhy?` ${esc(d.cutWhy)}`:''}<div style="margin-top:8px"><button class="btn alt sm" data-act="addnextshot">Add the next screenshot</button></div></div>`:''}
+  ${d.flags&&d.flags.length?`<div class="note warn">${ic('alert',15)} <b>Check these</b><ul>${d.flags.map(f=>`<li>${esc(f)}</li>`).join('')}</ul>${d.staged?'<div class="muted" style="margin-top:6px">Prototype: this flag is staged to show how it will look.</div>':''}</div>`:''}
+  ${d.origSteps?(()=>{const have=d.metText.split('\n').filter(x=>x.trim()&&!/^tip:/i.test(x.trim())).length;return have===d.origSteps?`<div class="note" style="background:var(--card);border-color:var(--line)">${ic('check',14)} The caption has ${d.origSteps} steps and you have ${have}.</div>`:`<div class="note warn">${ic('alert',15)} The caption has ${d.origSteps} steps but you have ${have}. Check the method below.</div>`})():''}
   <div class="field"><label>Title</label><input data-in="d_title" placeholder="Name this recipe" value="${esc(d.title)}"></div>
   <div class="field"><label>Source</label><input data-in="d_source" value="${esc(d.source)}"></div>
   <div class="row"><div class="field" style="flex:1"><label>Minutes</label><input type="number" data-in="d_time" value="${d.time}"></div><div class="field" style="flex:1"><label>Serves</label><input type="number" data-in="d_serves" value="${d.serves}"></div></div>
@@ -702,6 +708,9 @@ function viewSheet(){
     <div class="field"><label>Units</label><div class="tabs"><button class="${S.units==='metric'?'on':''}" data-act="units" data-v="metric">Metric</button><button class="${S.units==='imperial'?'on':''}" data-act="units" data-v="imperial">Imperial</button></div></div>
     <button class="btn ghost" data-act="opentrash" style="margin-bottom:8px">${ic('trash',16)}Recently deleted (${trash.filter(t=>S.day-t.day<7).length})</button>
     <div class="field"><label>Appearance</label><div class="tabs">${[['auto','Auto'],['light','Light'],['dark','Dark']].map(([k,l])=>`<button class="${S.mode===k?'on':''}" data-act="mode" data-v="${k}">${l}</button>`).join('')}</div><div class="muted" style="margin-top:4px">Auto follows your phone's light or dark setting.</div></div>
+    <div class="field"><label>Recipe reading</label><input data-in="readcode" type="password" autocomplete="off" autocapitalize="off" placeholder="Reading code" aria-label="Reading code" value="${esc(S.readCode)}">
+      <div class="muted" style="margin-top:4px">${!READER_URL?'Not set up yet. Recipes fill in with a sample for now.':S.readCode.trim()?'Saved on this phone.':'Type the reading code once on each phone.'}</div>
+      <div class="tabs" style="margin-top:8px" aria-label="Reading model">${[['sonnet','Sonnet'],['haiku','Haiku']].map(([k,l])=>`<button class="${S.readModel===k?'on':''}" data-act="readmodel" data-v="${k}">${l}</button>`).join('')}</div><div class="muted" style="margin-top:4px">For testing which Claude reads best. Haiku is cheaper.</div></div>
     <div class="field" style="margin-top:18px"><label>Share this recipe book</label>
       <div class="muted" style="font-size:13px;margin:-2px 0 8px">No such thing as too many cooks. Use this code to invite whoever you want to cook with.</div>
       <div class="row between" style="padding:9px 12px;background:var(--card);border:1px solid var(--line);border-radius:12px">
@@ -760,11 +769,47 @@ function parseText(t){
 }
 function parseShots(n){
   const d=parseText(SAMPLE);
-  d.source='Screenshot'; d.shotCount=n; d.original=SAMPLE; d.origSteps=4; d.flags=[];
+  d.source='Screenshot'; d.shotCount=n; d.original=SAMPLE; d.origSteps=4; d.flags=[]; d.staged=true;
   if(n>1){ d.flags.push('Couldn’t read the cream amount in screenshot 2. Check it below.'); d.ingText=d.ingText.replace(/^100ml double cream$/m,'double cream (amount?)'); }
   return d;
 }
 function blankDraft(){return {title:'',source:'Own recipe',url:'',time:30,serves:2,effort:'Easy',ingText:'',metText:'',meals:[],mains:[],diets:[],cuisine:'',customText:''}}
+
+// ---------- real recipe reading (Claude, via the Supabase function) ----------
+// READER_URL: the read-recipe function's address. Empty = not set up yet (falls back to the sample).
+const READER_URL = 'https://iqfcqxjgxrfkmrbrthmd.supabase.co/functions/v1/read-recipe';
+const store = { get(k){ try{ return localStorage.getItem('pizzico.'+k)||''; }catch(e){ return ''; } }, set(k,v){ try{ localStorage.setItem('pizzico.'+k,v); }catch(e){} } };
+S.readCode = store.get('readcode'); S.readModel = store.get('readmodel')||'sonnet';
+const readerReady = () => !!(READER_URL && S.readCode.trim());
+// Shrink a screenshot on the phone before sending (long edge 1568px, which is what Claude reads at anyway).
+function shrinkShot(file){
+  return new Promise((ok,bad)=>{ const u=URL.createObjectURL(file), im=new Image();
+    im.onload=()=>{ const k=Math.min(1,1568/Math.max(im.width,im.height)); const c=document.createElement('canvas'); c.width=Math.round(im.width*k); c.height=Math.round(im.height*k);
+      const g=c.getContext('2d'); g.fillStyle='#fff'; g.fillRect(0,0,c.width,c.height); g.drawImage(im,0,0,c.width,c.height); URL.revokeObjectURL(u);
+      ok({type:'image/jpeg',data:c.toDataURL('image/jpeg',.85).split(',')[1]}); };
+    im.onerror=()=>{ URL.revokeObjectURL(u); bad(new Error('One of the screenshots couldn’t be opened.')); }; im.src=u; });
+}
+async function askReader(body){
+  let r;
+  try{ r=await fetch(READER_URL,{method:'POST',headers:{'content-type':'application/json','x-pizzico-code':S.readCode.trim()},body:JSON.stringify({...body,model:S.readModel})}); }
+  catch(e){ throw new Error('Couldn’t reach Pizzico’s reader. Check your connection and try again.'); }
+  const j=await r.json().catch(()=>({}));
+  if(!r.ok||!j.ok) throw new Error(j.error||'Reading failed. Try again.');
+  return j;
+}
+// Turn the reader's answer into a review-screen draft.
+function draftFrom(res,extra){
+  const x=res.recipe, d=blankDraft();
+  const low=(x.title+' '+x.ingredients.map(i=>i.item).join(' ')).toLowerCase();
+  const guess=parseText(x.title+'\n'+x.ingredients.map(i=>i.item).join('\n'));
+  Object.assign(d,{title:x.title, time:x.minutes||30, serves:x.serves||2, effort:x.effort||'Easy',
+    ingText:x.ingredients.map(i=>(i.qty?i.qty+' ':'')+i.item).join('\n'),
+    metText:[...x.steps,...x.tips.map(t=>'Tip: '+t)].join('\n'),
+    meals:x.meal_types.length?x.meal_types:(res.via==='schema'?guess.meals:[]), mains:x.main_ingredients.length?x.main_ingredients:(res.via==='schema'?guess.mains:[]),
+    diets:x.diets, cuisine:x.cuisine, original:x.original_text||'', origSteps:x.source_step_count||0, flags:x.flags, cutOff:!!x.looks_cut_off, cutWhy:x.cut_off_reason||'', readBy:res.via==='schema'?'schema':'claude'}, extra);
+  if(x.not_a_recipe){ d.flags=['This doesn’t look like a recipe. Check you picked the right screenshots.',...d.flags]; }
+  return d;
+}
 
 // ---------- events ----------
 document.addEventListener('click',e=>{
@@ -853,13 +898,37 @@ document.addEventListener('click',e=>{
     case 'pastetoggle': S.add.pasteOpen=!S.add.pasteOpen; break;
     case 'linkonly': {const d=blankDraft(); d.source='Instagram'; d.url=S.add.url.trim(); d.linkOnly=true; S.add.draft=d; break;}
     case 'othershots': S.add.src='shots'; S.add.step='caption'; S.add.pasteOpen=false; break;
-    case 'webgo': {const u=S.add.web.trim(); if(!u){toast('Paste a link first');return;} const d=parseText(SAMPLE); d.source='Website'; d.url=u; d.original=SAMPLE; d.origSteps=4; d.flags=[]; S.add.draft=d; S.add.showOrig=false; break;}
+    case 'webgo': {const u=S.add.web.trim(); if(!u){toast('Paste a link first');return;} if(S.add.busy) return;
+      if(isIG(u)){toast('For Instagram, go back and paste the link there.',false,2800);return;}
+      if(!readerReady()){ const d=parseText(SAMPLE); d.source='Website'; d.url=u; d.original=SAMPLE; d.origSteps=4; d.flags=[]; d.staged=true; S.add.draft=d; S.add.showOrig=false; toast(READER_URL?'Add your reading code in Settings. Showing the sample.':'Recipe reading isn’t set up yet. Showing the sample.',false,3000); return; }
+      S.add.busy=true; render();
+      askReader({kind:'url',url:/^https?:\/\//i.test(u)?u:'https://'+u}).then(res=>{ S.add.draft=draftFrom(res,{source:'Website',url:res.url||u}); S.add.showOrig=false; })
+        .catch(err=>toast(err.message,false,4000)).finally(()=>{ S.add.busy=false; render(); });
+      return;}
     case 'go': {
       const a=S.add, n=a.shots.length, ig=a.src!=='shots', link=ig?a.url.trim():'';
-      if(ig&&a.pasteOpen){ if(!a.text.trim()){toast('Paste the caption first');return;} const d=parseText(a.text); d.original=a.text; d.url=link; d.source='Instagram'; d.flags=[]; a.draft=d; }
-      else if(n){ const d=parseShots(n); d.url=link; d.source=ig?'Instagram':'Screenshot'; a.draft=d; }
-      else { toast('Add a screenshot first'); return; }
-      a.showOrig=false; break; }
+      if(a.busy) return;
+      const pasted=ig&&a.pasteOpen;
+      if(pasted&&!a.text.trim()){toast('Paste the caption first');return;}
+      if(!pasted&&!n){ toast('Add a screenshot first'); return; }
+      const real=readerReady()&&(pasted||a.shots.every(x=>x.file));
+      if(!real){
+        if(pasted){ const d=parseText(a.text); d.original=a.text; d.url=link; d.source='Instagram'; d.flags=[]; a.draft=d; }
+        else { const d=parseShots(n); d.url=link; d.source=ig?'Instagram':'Screenshot'; a.draft=d; }
+        if(!readerReady()) toast(READER_URL?'Add your reading code in Settings. Showing the sample.':'Recipe reading isn’t set up yet. Showing the sample.',false,3000);
+        a.showOrig=false; break; }
+      a.busy=true; render();
+      (async()=>{ try{
+          const res=pasted?await askReader({kind:'text',text:a.text})
+            :await askReader({kind:'images',images:await Promise.all(a.shots.map(x=>shrinkShot(x.file)))});
+          a.draft=draftFrom(res,{url:link,source:ig?'Instagram':'Screenshot',shotCount:pasted?0:n});
+          if(pasted) a.draft.original=a.text;
+          a.showOrig=false;
+        }catch(err){ toast(err.message,false,4000); }
+        finally{ a.busy=false; render(); } })();
+      return; }
+    case 'addnextshot': S.add.draft=null; render(); setTimeout(()=>{ const f=$('#shotin'); if(f) f.click(); },50); return;
+    case 'readmodel': S.readModel=v; store.set('readmodel',v); break;
     case 'shotrm': S.add.shots.splice(+el.dataset.i,1); break;
     case 'shotmv': {const i=+el.dataset.i,j=i+(+v); const sh=S.add.shots; if(j>=0&&j<sh.length){[sh[i],sh[j]]=[sh[j],sh[i]];} break;}
     case 'shotsample': S.add.shots=[1,2,3].map(k=>({src:null,label:'Sample screenshot '+k})); break;
@@ -881,7 +950,7 @@ document.addEventListener('click',e=>{
 });
 document.addEventListener('change',e=>{
   const el=e.target;
-  if(el.id==='shotin'&&el.files&&el.files.length){ [...el.files].forEach(f=>S.add.shots.push({src:URL.createObjectURL(f),label:f.name})); el.value=''; render(); return; }
+  if(el.id==='shotin'&&el.files&&el.files.length){ [...el.files].forEach(f=>S.add.shots.push({src:URL.createObjectURL(f),label:f.name,file:f})); el.value=''; render(); return; }
   if(el.id==='photoin'&&el.files&&el.files[0]){ const r=byId(S.view); const fr=new FileReader(); fr.onload=()=>{ const im=new Image(); im.onload=()=>{ const k=Math.min(1,900/Math.max(im.width,im.height)); const c=document.createElement('canvas'); c.width=Math.round(im.width*k); c.height=Math.round(im.height*k); c.getContext('2d').drawImage(im,0,0,c.width,c.height); r.photo=c.toDataURL('image/jpeg',.82); r.photoBy=S.me; toast('Photo added'); render(); }; im.src=fr.result; }; fr.readAsDataURL(el.files[0]); return; }
   if(el.dataset.act==='shopchk'){S.shop[+el.dataset.i].done=el.checked; render(); return;}
   if(el.dataset.act==='chk'){const r=byId(S.view); const c=S.checked[r.id]=S.checked[r.id]||{}; c[el.dataset.i]=el.checked; render();}
@@ -891,7 +960,7 @@ document.addEventListener('input',e=>{
   const v=el.value, d=S.add.draft;
   const m={q:()=>{S.q=v;render();const q=$('#q');q.focus();q.setSelectionRange(v.length,v.length);},
     note:()=>{byId(S.view).notes[S.me].text=v},cmt:()=>{S.commentDraft=v},ci:()=>{S.cantInput=v},quickinput:()=>{S.quickInput=v},shopinput:()=>{S.shopInput=v},onb_name:()=>{S.onb[S.me].name=v},onb_book:()=>{S.onb[S.me].bookName=v},onb_code:()=>{S.onb[S.me].code=v},bookname:()=>{S.book.name=v},
-    addtext:()=>{S.add.text=v},addurl:()=>{S.add.url=v},weburl:()=>{S.add.web=v},ratenote:()=>{S.rateDraft.note=v},
+    addtext:()=>{S.add.text=v},readcode:()=>{S.readCode=v.trim();store.set('readcode',S.readCode)},addurl:()=>{S.add.url=v},weburl:()=>{S.add.web=v},ratenote:()=>{S.rateDraft.note=v},
     d_title:()=>{d.title=v},d_source:()=>{d.source=v},d_time:()=>{d.time=v},d_serves:()=>{d.serves=v},d_ing:()=>{d.ingText=v},d_met:()=>{d.metText=v},d_custom:()=>{d.customText=v}};
   m[k]&&m[k]();
 });

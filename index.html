@@ -496,7 +496,7 @@ function viewDetail(r){
   <div class="photorow">${r.photo?`<label for="photoin">${ic('camera',15)}Change photo</label><button data-act="photorm">Remove photo</button>`:`<label for="photoin">${ic('camera',15)}Add a photo</label><span class="muted">Shows instead of the emoji</span>`}<input id="photoin" type="file" accept="image/*" hidden></div>
   <div class="row between"><h1 style="margin:0;font-size:22px;line-height:1.2">${esc(r.title)}</h1></div>
   <div class="muted" style="margin:4px 0 8px">Saved from ${esc(r.source)} by ${USERS[r.added].name}${r.editedBy?` · edited by ${USERS[r.editedBy].name}`:''}${r.url?` · <a href="${esc(r.url)}" target="_blank" rel="noopener" style="color:var(--accent)">Open original ${ic('ext',13)}</a>`:''}</div>
-  ${r.needsMethod?`<div class="note warn">${ic('alert',15)} <b>No method yet.</b> The post didn’t include one (it’s probably in the video). Tap Edit to add the steps.</div>`:''}
+  ${r.needsMethod?`<div class="note warn">${ic('alert',15)} <b>No method yet.</b> The post didn’t include one (it’s probably in the video). Tap Edit to add the steps.${r.fromPost?`<div style="white-space:pre-line;margin-top:6px"><b>From the post:</b>\n${esc(fixTemp(r.fromPost))}</div>`:''}</div>`:''}
   ${(!r.method.length&&!r.ingredients.length)?`<div class="note">${ic('link',14)} Only the link is saved so far. Tap Edit to add the ingredients and steps.</div>`:''}
   <div class="row" style="gap:8px;margin:8px 0 4px;flex-wrap:wrap">
     <button class="favbtn ${r.favs[me]?'on':''}" data-act="fav" data-v="${r.id}">${r.favs[me]?ic('heart',16,'fill')+'Favourited':ic('heart',16)+'Favourite'}</button>
@@ -671,6 +671,7 @@ function viewReview(){
   ${d.cutOff?`<div class="note warn">${ic('alert',15)} <b>This looks cut off.</b>${d.cutWhy?` ${esc(d.cutWhy)}`:''}<div style="margin-top:8px"><button class="btn alt sm" data-act="addnextshot">Add the next screenshot</button></div></div>`:''}
   ${d.flags&&d.flags.length?`<div class="note warn">${ic('alert',15)} <b>Check these</b><ul>${d.flags.map(f=>`<li>${esc(f)}</li>`).join('')}</ul>${d.staged?'<div class="muted" style="margin-top:6px">Prototype: this flag is staged to show how it will look.</div>':''}</div>`:''}
   ${d.methodMissing||d.needsMethod?`<div class="note warn">${ic('alert',15)} <b>No method in this post.</b> The method is probably in the video. Add the steps in the Method box below, or save now and come back to it.</div>`:''}
+  ${d.fromPost?`<div class="note"><b>From the post</b> (kept here, not in the method)<div style="white-space:pre-line;margin-top:4px">${esc(fixTemp(d.fromPost))}</div></div>`:''}
   ${d.origSteps&&!d.methodMissing?(()=>{const have=d.metText.split('\n').filter(x=>x.trim()&&!/^tip:/i.test(x.trim())).length;return have===d.origSteps?`<div class="note" style="background:var(--card);border-color:var(--line)">${ic('check',14)} The caption has ${d.origSteps} steps and you have ${have}.</div>`:`<div class="note warn">${ic('alert',15)} The caption has ${d.origSteps} steps but you have ${have}. Check the method below.</div>`})():''}
   <div class="field"><label>Title</label><input data-in="d_title" placeholder="Name this recipe" value="${esc(d.title)}"></div>
   <div class="field"><label>Source</label><input data-in="d_source" value="${esc(d.source)}"></div>
@@ -810,6 +811,7 @@ function draftFrom(res,extra){
     metText:[...x.steps,...x.tips.map(t=>'Tip: '+t)].join('\n'),
     meals:x.meal_types.length?x.meal_types:(res.via==='schema'?guess.meals:[]), mains:x.main_ingredients.length?x.main_ingredients:(res.via==='schema'?guess.mains:[]),
     diets:x.diets, cuisine:x.cuisine, original:x.original_text||'', origSteps:x.source_step_count||0, methodMissing:!!x.method_missing, flags:x.flags, cutOff:!!x.looks_cut_off, cutWhy:x.cut_off_reason||'', readBy:res.via==='schema'?'schema':'claude'}, extra);
+  if(x.method_missing){ d.fromPost=[...x.steps,...x.tips].filter(Boolean).join('\n'); d.metText=''; }
   if(x.not_a_recipe){ d.flags=['This doesn’t look like a recipe. Check you picked the right screenshots.',...d.flags]; }
   return d;
 }
@@ -832,7 +834,7 @@ document.addEventListener('click',e=>{
     case 'shopclear': S.shop=S.shop.filter(i=>!i.done); break;
     case 'shopclearall': S.shop=[]; break;
     case 'delyes': {const id=S.view, rr=byId(id); const slots=Object.keys(plan).filter(k=>plan[k]===id); trash.unshift({r:rr,by:me,day:S.day,slots}); recipes=recipes.filter(x=>x.id!==id); slots.forEach(k=>{delete plan[k];}); S.lastDel=id; S.view=null; S.sheet=null; toast('Recipe deleted',true,7000); return;}
-    case 'edit': {const x=byId(+v); S.add.draft={editId:x.id,title:x.title,source:x.source,url:x.url||'',time:x.time,serves:x.serves,effort:x.effort,ingText:x.ingredients.map(i=>(i.q?i.q+' ':'')+i.name).join('\n'),metText:x.method.join('\n'),needsMethod:!!x.needsMethod,meals:[...x.meals],mains:[...x.mains],diets:[...x.diets],cuisine:x.cuisine,customText:x.custom.join(', ')}; S.view=null; S.tab='add'; break;}
+    case 'edit': {const x=byId(+v); S.add.draft={editId:x.id,title:x.title,source:x.source,url:x.url||'',time:x.time,serves:x.serves,effort:x.effort,ingText:x.ingredients.map(i=>(i.q?i.q+' ':'')+i.name).join('\n'),metText:x.method.join('\n'),needsMethod:!!x.needsMethod,fromPost:x.fromPost||'',meals:[...x.meals],mains:[...x.mains],diets:[...x.diets],cuisine:x.cuisine,customText:x.custom.join(', ')}; S.view=null; S.tab='add'; break;}
     case 'demotoggle': demoOpen=!demoOpen; break;
     case 'who': demoOpen=window.matchMedia('(min-width:500px)').matches; S.dev[S.me].units=S.units; S.me=v; S.units=S.dev[v].units; S.tab='library'; S.view=null; S.sheet=null; S.cook=null; S.add.draft=null; S.add.shareUrl=''; Object.assign(S.add,{text:'',shots:[],url:'',web:'',step:'link',src:'ig',pasteOpen:false}); loadBook(); break;
     case 'onbstep': {const o=S.onb[me]; if(!o.name.trim()){toast('Add your name first');return;} o.step=v; o.err=''; break;}
@@ -945,7 +947,7 @@ document.addEventListener('click',e=>{
       const emoji=d.mains.includes('Seafood')?'🐟':d.mains.includes('Chicken')?'🍗':d.mains.includes('Pasta')?'🍝':d.mains.includes('Eggs')?'🍳':d.meals.includes('Dessert')?'🍰':'🍽';
       const nr=R({title:d.title.trim(),emoji,color:['#fbe0cc','#e8def0','#f6ead0','#dcebe0','#f3d9d3'][nid%5],time:+d.time||30,effort:d.effort||'Easy',serves:+d.serves||2,meals:d.meals,mains:d.mains,diets:d.diets,cuisine:d.cuisine,custom:d.customText.split(',').map(x=>x.trim()).filter(Boolean),source:d.source,url:d.url||'',added:me,
         ingredients:parseIng(d.ingText),
-        method:d.metText.split('\n').map(x=>x.trim()).filter(Boolean)}); if(d.original) nr.original=d.original; if(d.methodMissing) nr.needsMethod=true;
+        method:d.metText.split('\n').map(x=>x.trim()).filter(Boolean)}); if(d.original) nr.original=d.original; if(d.methodMissing) nr.needsMethod=true; if(d.fromPost) nr.fromPost=d.fromPost;
       recipes.unshift(nr); Object.assign(S.add,{draft:null,text:'',shots:[],url:'',web:'',step:'link',src:'ig',pasteOpen:false}); S.tab='library'; S.view=nr.id; toast('Saved to the library'); return;
     }
   }

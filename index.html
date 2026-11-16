@@ -443,6 +443,7 @@ function render(){
   const nb=S.notice[S.me]?`<div class="note" style="display:flex;gap:8px;justify-content:space-between"><span>${esc(S.notice[S.me])}</span><button data-act="dismissnotice" aria-label="Dismiss" style="padding:6px;margin:-6px">${ic('x',16)}</button></div>`:'';
   main.innerHTML = nb + (!member ? viewOnboard() : S.view ? viewDetail(byId(S.view)) : ({library:viewLibrary,cant:viewCant,add:viewAdd,plan:viewPlan,journal:viewJournal,shop:viewShop,trash:viewTrash})[S.tab]());
   main.scrollTop = scroll;
+  if(S.scrollTo){ const w=S.scrollTo; S.scrollTo=null; main.scrollTop=0; if(w==='met'){ const t=main.querySelector('[data-in=d_met]'); if(t){ t.scrollIntoView({block:'center'}); try{t.focus({preventScroll:true});}catch(e){} } } }
   $('#overlay').innerHTML = (member&&S.sheet?viewSheet():'') + (S.cook?viewCook():'') + (S.toast?`<div class="toast" role="status" aria-live="polite">${esc(S.toast)}${S.toastUndo?` <button data-act="undodel" style="margin:-8px -6px -8px 6px;padding:8px 6px;color:var(--toast-link);font-weight:700">Undo</button>`:''}</div>`:'');
   a11yPass();
 }
@@ -519,7 +520,7 @@ function viewDetail(r){
   <div class="tabs" style="margin:0 0 4px"><button class="${S.units==='metric'?'on':''}" data-act="units" data-v="metric">Metric</button><button class="${S.units==='imperial'?'on':''}" data-act="units" data-v="imperial">Imperial</button></div>
   ${r.ingredients.map((i,ix)=>`<label class="ing ${chk[ix]?'done':''}"><input type="checkbox" data-act="chk" data-i="${ix}" ${chk[ix]?'checked':''}><span class="q">${esc(scaleQ(i.q,f))}</span><span>${esc(i.name)}</span></label>`).join('')}
   <h2>Method</h2>
-  ${!r.method.length?`<div class="muted" style="margin-bottom:8px">No steps yet.</div><button class="btn sm" data-act="edit" data-v="${r.id}">${ic('pencil',15)}Add the method</button>`:''}
+  ${!r.method.length?`<div class="muted" style="margin-bottom:8px">No steps yet.</div><button class="btn sm" data-act="edit" data-focus="met" data-v="${r.id}">${ic('pencil',15)}Add the method</button>`:''}
   ${r.method.map((s,ix)=>`<div class="step${done[ix]?' done':''}" data-act="step" data-i="${ix}"><div class="n">${done[ix]?ic('check',14):ix+1}</div><p>${esc(fixTemp(s))}</p></div>`).join('')}
   ${r.original?`<details class="orig"><summary>Original text</summary><pre class="origtxt">${esc(r.original)}</pre></details>`:''}
   <h2>Reactions</h2>
@@ -835,7 +836,7 @@ document.addEventListener('click',e=>{
     case 'shopclear': S.shop=S.shop.filter(i=>!i.done); break;
     case 'shopclearall': S.shop=[]; break;
     case 'delyes': {const id=S.view, rr=byId(id); const slots=Object.keys(plan).filter(k=>plan[k]===id); trash.unshift({r:rr,by:me,day:S.day,slots}); recipes=recipes.filter(x=>x.id!==id); slots.forEach(k=>{delete plan[k];}); S.lastDel=id; S.view=null; S.sheet=null; toast('Recipe deleted',true,7000); return;}
-    case 'edit': {const x=byId(+v); S.add.draft={editId:x.id,title:x.title,source:x.source,url:x.url||'',time:x.time,serves:x.serves,effort:x.effort,ingText:x.ingredients.map(i=>(i.q?i.q+' ':'')+i.name).join('\n'),metText:x.method.join('\n'),needsMethod:!!x.needsMethod,fromPost:x.fromPost||'',meals:[...x.meals],mains:[...x.mains],diets:[...x.diets],cuisine:x.cuisine,customText:x.custom.join(', ')}; S.view=null; S.tab='add'; break;}
+    case 'edit': {const x=byId(+v); S.add.draft={editId:x.id,title:x.title,source:x.source,url:x.url||'',time:x.time,serves:x.serves,effort:x.effort,ingText:x.ingredients.map(i=>(i.q?i.q+' ':'')+i.name).join('\n'),metText:x.method.join('\n'),needsMethod:!!x.needsMethod,fromPost:x.fromPost||'',meals:[...x.meals],mains:[...x.mains],diets:[...x.diets],cuisine:x.cuisine,customText:x.custom.join(', ')}; S.view=null; S.tab='add'; S.scrollTo=el.dataset.focus==='met'?'met':'top'; break;}
     case 'demotoggle': demoOpen=!demoOpen; break;
     case 'who': demoOpen=window.matchMedia('(min-width:500px)').matches; S.dev[S.me].units=S.units; S.me=v; S.units=S.dev[v].units; S.tab='library'; S.view=null; S.sheet=null; S.cook=null; S.add.draft=null; S.add.shareUrl=''; Object.assign(S.add,{text:'',shots:[],url:'',web:'',step:'link',src:'ig',pasteOpen:false}); loadBook(); break;
     case 'onbstep': {const o=S.onb[me]; if(!o.name.trim()){toast('Add your name first');return;} o.step=v; o.err=''; break;}

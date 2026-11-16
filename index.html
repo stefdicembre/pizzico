@@ -785,7 +785,7 @@ function blankDraft(){return {title:'',source:'Own recipe',url:'',time:30,serves
 // READER_URL: the read-recipe function's address. Empty = not set up yet (falls back to the sample).
 const READER_URL = 'https://iqfcqxjgxrfkmrbrthmd.supabase.co/functions/v1/read-recipe';
 const store = { get(k){ try{ return localStorage.getItem('pizzico.'+k)||''; }catch(e){ return ''; } }, set(k,v){ try{ localStorage.setItem('pizzico.'+k,v); }catch(e){} } };
-S.readCode = store.get('readcode'); S.readModel = store.get('readmodel')||'sonnet';
+S.readCode = store.get('readcode'); S.readModel = store.get('readmodel')||'haiku';
 const readerReady = () => !!(READER_URL && S.readCode.trim());
 // Shrink a screenshot on the phone before sending (long edge 1568px, which is what Claude reads at anyway).
 function shrinkShot(file){

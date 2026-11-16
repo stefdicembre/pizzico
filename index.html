@@ -519,12 +519,13 @@ function viewDetail(r){
   <div class="tabs" style="margin:0 0 4px"><button class="${S.units==='metric'?'on':''}" data-act="units" data-v="metric">Metric</button><button class="${S.units==='imperial'?'on':''}" data-act="units" data-v="imperial">Imperial</button></div>
   ${r.ingredients.map((i,ix)=>`<label class="ing ${chk[ix]?'done':''}"><input type="checkbox" data-act="chk" data-i="${ix}" ${chk[ix]?'checked':''}><span class="q">${esc(scaleQ(i.q,f))}</span><span>${esc(i.name)}</span></label>`).join('')}
   <h2>Method</h2>
+  ${!r.method.length?`<div class="muted" style="margin-bottom:8px">No steps yet.</div><button class="btn sm" data-act="edit" data-v="${r.id}">${ic('pencil',15)}Add the method</button>`:''}
   ${r.method.map((s,ix)=>`<div class="step${done[ix]?' done':''}" data-act="step" data-i="${ix}"><div class="n">${done[ix]?ic('check',14):ix+1}</div><p>${esc(fixTemp(s))}</p></div>`).join('')}
   ${r.original?`<details class="orig"><summary>Original text</summary><pre class="origtxt">${esc(r.original)}</pre></details>`:''}
   <h2>Reactions</h2>
   <div class="rx" style="margin-top:0">${rxRow(r.reacts,'rxr')}</div>
   <h2>Notes</h2>
-  <div class="field"><label>My notes (${USERS[me].name})</label><textarea data-in="note" placeholder="Swaps, tweaks, tips…">${esc(myNote.text)}</textarea>
+  <div class="field"><label>My notes (${USERS[me].name})</label><textarea data-in="note" placeholder="Swaps, tweaks, tips…">${esc(myNote.text)}</textarea><div class="muted" style="font-size:13px;margin-top:4px">Saves as you type.</div>
     <label class="check" style="text-transform:none;font-weight:500;margin-top:8px;letter-spacing:0"><input type="checkbox" data-act="priv" ${myNote.priv?'checked':''}> Keep private (only I can see this)</label></div>
   ${Object.keys(r.notes).filter(k=>k!==me&&r.notes[k].text).map(k=>r.notes[k].priv?`<div class="muted">${ic('lock',13)} ${esc(USERS[k].name)} has a private note.</div>`:`<div class="bubble ${k}"><div class="h">${esc(USERS[k].name)}'s notes</div>${esc(r.notes[k].text)}</div>`).join('')}
   <h2>Comments</h2>

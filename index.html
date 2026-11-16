@@ -225,9 +225,10 @@ pre.origtxt{white-space:pre-wrap;font:inherit;font-size:13px;background:var(--ca
   <div id="overlay"></div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 // ---------- constants ----------
-const USERS = { stef:{name:'', initial:''}, partner:{name:'', initial:''}, third:{name:'', initial:''} };
+const USERS = new Proxy({}, { get:(t,k)=>t[k]||{name:'Someone',initial:'?',cls:'stef'} });   // filled from the database: id -> {name, initial, cls}
 const OPTS = {
   meals:['Breakfast','Lunch','Dinner','Snack','Dessert','Side','Drink'],
   mains:['Chicken','Beef','Pork','Seafood','Veg','Pasta','Eggs','Oats & grains'],
@@ -283,8 +284,8 @@ let recipes = [];
 let plan = {};
 
 // ---------- state ----------
-const S = { me:'stef', tab:'library', view:null, q:'', f:{meals:[],mains:[],diets:[],cuisines:[],times:[],custom:[]}, favOnly:false, sheet:null, toast:null,
-  add:{step:'link', src:'ig', pasteOpen:false, web:'', mode:'paste', text:'', url:'', draft:null, shareUrl:'', shots:[], showOrig:false}, cant:[], cantInput:'', quick:null, quickEdit:false, quickInput:'', checked:{}, stepsDone:{}, cook:null, rateDraft:{stars:0,note:''}, planPick:null, commentDraft:'', units:'metric', serves:{}, shop:[], shopInput:'', books:[], notice:{}, rmTarget:null, mode:'auto', font:'jakarta', toastUndo:false, lastDel:null, day:0, dev:{stef:{units:'metric',bookId:null},partner:{units:'metric',bookId:null},third:{units:'metric',bookId:null}}, onb:{stef:{step:'welcome',name:'Stef',bookName:'Our Recipe Book',code:'',err:'',open:false},partner:{step:'welcome',name:'Cath',bookName:'Our Recipe Book',code:'',err:'',open:false},third:{step:'welcome',name:'Sam',bookName:'Our Recipe Book',code:'',err:'',open:false}} };
+const S = { me:null, ready:false, email:'', auth:{step:'email',email:'',name:'',code:'',err:'',busy:false}, busy:false, leaving:null, tab:'library', view:null, q:'', f:{meals:[],mains:[],diets:[],cuisines:[],times:[],custom:[]}, favOnly:false, sheet:null, toast:null,
+  add:{step:'link', src:'ig', pasteOpen:false, web:'', mode:'paste', text:'', url:'', draft:null, shareUrl:'', shots:[], showOrig:false}, cant:[], cantInput:'', quick:null, quickEdit:false, quickInput:'', checked:{}, stepsDone:{}, cook:null, rateDraft:{stars:0,note:''}, planPick:null, commentDraft:'', units:'metric', serves:{}, shop:[], shopInput:'', books:[], notice:{}, rmTarget:null, mode:'auto', font:'jakarta', toastUndo:false, lastDel:null, day:0, dev:{}, onb:{} };
 
 // ---------- helpers ----------
 const $ = s=>document.querySelector(s);
@@ -352,7 +353,7 @@ const isMember = k => myBooks(k).length>0;
 function curBook(){ const d=S.dev[S.me]; return S.books.find(x=>x.id===d.bookId&&x.members.includes(S.me)) || myBooks(S.me)[0] || null; }
 Object.defineProperty(S,'book',{get:curBook});
 function syncOut(){ if(active){ active.recipes=recipes; active.plan=plan; active.shop=S.shop; active.trash=trash; } }
-function loadBook(){ syncOut(); const b=curBook(); active=b; if(b){ S.dev[S.me].bookId=b.id; recipes=b.recipes; plan=b.plan; S.shop=b.shop; trash=b.trash; } else { recipes=[]; plan={}; S.shop=[]; trash=[]; } }
+function loadBook(){ syncOut(); const b=curBook(); active=b; if(b){ S.dev[S.me].bookId=b.id; store.set('book',b.id); recipes=b.recipes; plan=b.plan; S.shop=b.shop; trash=b.trash; } else { recipes=[]; plan={}; S.shop=[]; trash=[]; } }
 function restore(id){ const i=trash.findIndex(t=>t.r.id===id); if(i<0) return false; const t=trash.splice(i,1)[0]; recipes.unshift(t.r); (t.slots||[]).forEach(k=>{plan[k]=t.r.id;}); return true; }
 const normCode = c => String(c||'').toUpperCase().replace(/[^A-Z0-9]/g,'');
 
@@ -411,7 +412,7 @@ function addToShop(items,src,f=1){
 function filtered(){
   const q=S.q.trim().toLowerCase();
   return recipes.filter(r=>{
-    if(S.favOnly && !(r.favs.stef||r.favs.partner)) return false;
+    if(S.favOnly && !Object.values(r.favs).some(Boolean)) return false;
     const f=S.f;
     if(f.meals.length && !f.meals.some(x=>r.meals.includes(x))) return false;
     if(f.mains.length && !f.mains.some(x=>r.mains.includes(x))) return false;
@@ -428,12 +429,11 @@ const filterCount = ()=>Object.values(S.f).reduce((a,b)=>a+b.length,0);
 // ---------- render ----------
 let demoOpen=window.matchMedia('(min-width:500px)').matches;
 function render(){
+  if(!S.me){ applyLook(); $('#demo').style.display='none'; $('#bookchip').style.display='none'; $('#bookbtn').style.display='none'; $('#nav').innerHTML=''; $('#main').innerHTML=viewSignIn(); $('#overlay').innerHTML=S.toast?`<div class="toast" role="status" aria-live="polite">${esc(S.toast)}</div>`:''; a11yPass(); return; }
   if(active!==curBook()) loadBook();
   applyLook(); syncOut();
   const member=isMember(S.me)&&!S.onb[S.me].open; const bk=curBook();
-  {const dk=['stef','partner','third'], di=dk.indexOf(S.me), dl=k=>`Phone ${'ABC'[dk.indexOf(k)]}${USERS[k].name?' · '+esc(USERS[k].name):''}`; const d=$('#demo'); d.classList.toggle('mini',!demoOpen);
-  d.innerHTML=demoOpen?`<span>PROTOTYPE ONLY · viewing as <button class="x" data-act="demotoggle" aria-label="Hide prototype bar">▴ hide</button></span>`+dk.map(k=>`<button class="${S.me===k?'on':''}" data-act="who" data-v="${k}">${dl(k)}</button>`).join('')
-  :`<button data-act="demotoggle">Prototype · ${dl(S.me)} ▾</button>`;}
+  $('#demo').style.display='none';
   const chip=$('#bookchip'); chip.style.display=member?'':'none'; if(bk&&member) chip.innerHTML=`${ic('book',14)}<span style="overflow:hidden;text-overflow:ellipsis">${esc(bk.name)}</span>${ic('chevD',14)}`;
   $('#bookbtn').style.display=member?'':'none'; $('#bookbtn').innerHTML=ic('settings',22);
   const tabs=[['library','bookOpen','Library'],['cant','fridge','Fridge'],['add','plus','Add'],['plan','calendar','Plan'],['shop','bag','List']];
@@ -446,6 +446,7 @@ function render(){
   if(S.scrollTo){ const w=S.scrollTo; S.scrollTo=null; main.scrollTop=0; if(w==='met'){ const t=main.querySelector('[data-in=d_met]'); if(t){ t.scrollIntoView({block:'center'}); try{t.focus({preventScroll:true});}catch(e){} } } }
   $('#overlay').innerHTML = (member&&S.sheet?viewSheet():'') + (S.cook?viewCook():'') + (S.toast?`<div class="toast" role="status" aria-live="polite">${esc(S.toast)}${S.toastUndo?` <button data-act="undodel" style="margin:-8px -6px -8px 6px;padding:8px 6px;color:var(--toast-link);font-weight:700">Undo</button>`:''}</div>`:'');
   a11yPass();
+  queueSync();
 }
 
 // ---------- accessibility pass: label inputs, mark toggle state ----------
@@ -458,7 +459,7 @@ function a11yPass(){
   document.querySelectorAll('#phone .chip[data-act=togf], #phone .chip[data-act=favonly], #phone .chip[data-act=dtog], #phone .tabs button, #phone .ttabs button').forEach(el=>el.setAttribute('aria-pressed',el.classList.contains('on')));
 }
 function card(r){
-  const hs = Object.keys(r.favs).filter(k=>r.favs[k]).map(k=>`<span class="heart ${k}">${USERS[k].initial}</span>`).join('');
+  const hs = Object.keys(r.favs).filter(k=>r.favs[k]).map(k=>`<span class="heart ${USERS[k].cls}">${USERS[k].initial}</span>`).join('');
   const av=avgStars(r);
   return `<button class="card" data-act="open" data-v="${r.id}">
     <div class="tile" aria-hidden="true" style="${tileStyle(r)}">${tileText(r)}</div>
@@ -486,7 +487,7 @@ function viewLibrary(){
 }
 
 function viewDetail(r){
-  const me=S.me, other=me==='stef'?'partner':'stef';
+  const me=S.me;
   const myNote=(r.notes[me]=r.notes[me]||{text:'',priv:false});
   const cur=S.serves[r.id]||r.serves, f=cur/r.serves;
   const done=S.stepsDone[r.id]||{}, chk=S.checked[r.id]||{};
@@ -528,9 +529,9 @@ function viewDetail(r){
   <h2>Notes</h2>
   <div class="field"><label>My notes (${USERS[me].name})</label><textarea data-in="note" placeholder="Swaps, tweaks, tips…">${esc(myNote.text)}</textarea><div class="muted" style="font-size:13px;margin-top:4px">Saves as you type.</div>
     <label class="check" style="text-transform:none;font-weight:500;margin-top:8px;letter-spacing:0"><input type="checkbox" data-act="priv" ${myNote.priv?'checked':''}> Keep private (only I can see this)</label></div>
-  ${Object.keys(r.notes).filter(k=>k!==me&&r.notes[k].text).map(k=>r.notes[k].priv?`<div class="muted">${ic('lock',13)} ${esc(USERS[k].name)} has a private note.</div>`:`<div class="bubble ${k}"><div class="h">${esc(USERS[k].name)}'s notes</div>${esc(r.notes[k].text)}</div>`).join('')}
+  ${Object.keys(r.notes).filter(k=>k!==me&&r.notes[k].text).map(k=>r.notes[k].priv?`<div class="muted">${ic('lock',13)} ${esc(USERS[k].name)} has a private note.</div>`:`<div class="bubble ${USERS[k].cls}"><div class="h">${esc(USERS[k].name)}'s notes</div>${esc(r.notes[k].text)}</div>`).join('')}
   <h2>Comments</h2>
-  ${r.comments.map((c,ix)=>`<div class="bubble ${c.who}"><div class="h">${USERS[c.who].name}</div>${esc(c.text)}<div class="rx">${REACTS.map(e=>{const w=(c.reacts[e]||[]);return `<button class="${w.includes(me)?'mine':''}" data-act="rxc" data-c="${ix}" data-e="${e}">${e}${w.length?' '+w.length:''}</button>`}).join('')}</div></div>`).join('') || '<div class="muted">No comments yet.</div>'}
+  ${r.comments.map((c,ix)=>`<div class="bubble ${USERS[c.who].cls}"><div class="h">${USERS[c.who].name}</div>${esc(c.text)}<div class="rx">${REACTS.map(e=>{const w=(c.reacts[e]||[]);return `<button class="${w.includes(me)?'mine':''}" data-act="rxc" data-c="${ix}" data-e="${e}">${e}${w.length?' '+w.length:''}</button>`}).join('')}</div></div>`).join('') || '<div class="muted">No comments yet.</div>'}
   <div class="row" style="margin-top:8px"><input id="cmt" class="search" style="flex:1;margin:0" placeholder="Add a comment…" data-in="cmt" value="${esc(S.commentDraft)}"><button class="btn sm" data-act="postc">Post</button></div>
   <div style="height:20px"></div>`;
 }
@@ -571,7 +572,7 @@ function stars(n){ const k=Math.round(n); return `<span role="img" aria-label="$
 function timesTxt(n){ return n===1?'cooked once':n===2?'cooked twice':'cooked '+n+' times'; }
 const MON=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 const MONTHS=['January','February','March','April','May','June','July','August','September','October','November','December'];
-function cookDate(c){ const now=new Date(); now.setHours(0,0,0,0); if(!c.date||c.date==='Today') return now;
+function cookDate(c){ const now=new Date(); now.setHours(0,0,0,0); if(c.at){ const d=new Date(c.at); d.setHours(0,0,0,0); return d; } if(!c.date||c.date==='Today') return now;
   const m=String(c.date).match(/(\d+)\s+([A-Za-z]{3})/); if(!m) return now;
   const d=new Date(now.getFullYear(),MON.indexOf(m[2]),+m[1]); if(d>now) d.setFullYear(d.getFullYear()-1); return d; }
 function viewJournal(){
@@ -582,7 +583,7 @@ function viewJournal(){
   const when=d=>{const days=Math.round((now-d)/864e5); return days===0?'Today':days===1?'Yesterday':days<7?d.toLocaleDateString('en-GB',{weekday:'long'}):d.getDate()+' '+MON[d.getMonth()];};
   let last='', html='';
   logs.forEach(({r,c,d})=>{const g=group(d); if(g!==last){html+=`<div class="jgroup">${g}</div>`; last=g;}
-    html+=`<button class="jent" data-act="open" data-v="${r.id}"><div class="t" style="${tileStyle(r)}">${tileText(r)}</div><div style="flex:1"><div><span class="n">${esc(r.title)}</span><span class="st">${stars(c.stars)}</span></div><div class="w"><b style="color:var(--${c.who});font-weight:600">${esc(USERS[c.who].name||'Someone')}</b> · ${when(d)}</div>${c.note?`<div class="q">${esc(c.note)}</div>`:''}</div></button>`;});
+    html+=`<button class="jent" data-act="open" data-v="${r.id}"><div class="t" style="${tileStyle(r)}">${tileText(r)}</div><div style="flex:1"><div><span class="n">${esc(r.title)}</span><span class="st">${stars(c.stars)}</span></div><div class="w"><b style="color:var(--${USERS[c.who].cls});font-weight:600">${esc(USERS[c.who].name||'Someone')}</b> · ${when(d)}</div>${c.note?`<div class="q">${esc(c.note)}</div>`:''}</div></button>`;});
   return `${titleTabs()}
   ${logs.length?html:`<div class="empty-state">${ic('book',36,'es-ic')}Nothing cooked yet.<br>Open a recipe and tap ‘Cooked it’ to start the journal.</div>`}
   ${forgot.length?`<h2>Favourited but not cooked yet</h2><div class="grid">${forgot.map(card).join('')}</div>`:''}`;
@@ -596,9 +597,10 @@ function viewTrash(){
   <div class="note" style="margin-top:16px">Prototype only: <button class="btn ghost sm" data-act="skipday">${ic('ffwd',14)}Jump ahead 1 day</button> to watch recipes drop off after 7 days (day ${S.day}).</div>`;
 }
 
+function welcomeHead(){ return `<div style="text-align:center;margin:14px 0 18px"><svg class='welcome-icon' aria-hidden='true' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'><defs><filter id='pzglow' x='-30%' y='-30%' width='160%' height='160%'><feGaussianBlur stdDeviation='2.2' result='b'/><feMerge><feMergeNode in='b'/><feMergeNode in='b'/><feMergeNode in='SourceGraphic'/></feMerge></filter></defs><rect width='100' height='100' rx='22' fill='#1c1519'/><g filter='url(#pzglow)'><path d='M40.76 90.92 L37.93 90.91 L36.23 90.41 L34.09 90.11 L31.53 89.53 L30.33 89.04 L29.22 88.76 L25.97 87.40 L24.60 86.66 L22.60 85.36 L21.35 84.44 L19.48 82.79 L18.55 81.51 L18.43 80.91 L18.53 80.22 L19.02 79.28 L23.66 72.95 L24.53 71.33 L24.85 69.62 L24.80 68.59 L24.97 67.39 L25.01 65.43 L25.23 64.32 L25.37 60.81 L26.10 57.39 L27.54 53.45 L28.28 51.98 L30.16 48.84 L31.69 46.70 L34.43 43.45 L40.55 37.55 L43.67 33.84 L44.98 31.90 L46.30 29.51 L47.10 27.45 L48.09 24.03 L48.77 22.58 L49.71 21.21 L50.43 20.60 L51.88 20.02 L52.91 19.93 L54.19 20.17 L54.62 20.06 L54.85 19.67 L55.03 17.96 L55.47 16.85 L56.16 15.90 L57.06 15.22 L58.21 14.93 L60.09 14.94 L61.59 13.77 L62.49 13.60 L63.26 13.70 L64.80 14.61 L70.82 19.76 L72.89 22.32 L79.25 29.67 L80.69 31.56 L81.27 32.59 L81.75 34.64 L81.77 35.58 L81.53 37.12 L81.24 44.90 L80.90 48.07 L80.63 52.26 L80.17 55.25 L79.89 58.50 L79.16 60.28 L77.98 62.01 L75.66 64.06 L72.92 66.11 L67.53 69.57 L58.64 74.72 L54.28 77.39 L51.03 79.54 L48.19 81.76 L46.07 83.81 L44.04 86.64 L42.28 89.38 L41.02 90.54 L40.76 90.92Z M57.67 49.61 L58.00 49.26 L58.08 48.66 L58.07 44.30 L57.77 41.31 L57.37 39.86 L56.67 38.49 L55.30 36.07 L55.05 35.84 L54.79 35.81 L54.29 36.26 L53.25 38.28 L50.75 42.51 L50.49 43.79 L50.69 45.67 L51.05 46.70 L51.54 47.16 L52.57 47.68 L53.91 48.07 L57.18 49.56 L57.67 49.61Z' fill='none' stroke='#ff7eb6' stroke-width='2.2' stroke-linejoin='round'/><path d='M77.28 50.67 L77.03 50.67 L76.86 50.55 L76.70 50.12 L76.63 48.32 L76.23 46.18 L75.92 43.19 L75.40 40.97 L75.15 38.91 L74.79 37.80 L74.54 35.84 L73.87 34.04 L72.32 31.88 L63.86 22.24 L60.87 16.51 L60.81 16.08 L61.12 15.71 L61.55 15.67 L61.97 15.96 L62.79 17.02 L63.42 18.13 L63.77 18.98 L65.12 21.12 L67.19 23.61 L70.97 27.62 L72.03 28.91 L74.55 31.64 L75.06 32.25 L75.83 33.53 L76.52 36.01 L76.83 38.49 L77.08 39.26 L77.23 40.54 L77.33 43.53 L77.58 45.33 L77.53 47.30 L77.75 48.49 L77.72 50.12 L77.55 50.46 L77.28 50.67Z M70.87 54.08 L70.61 54.07 L70.42 53.88 L69.98 52.68 L69.70 51.32 L69.32 50.12 L69.04 48.41 L68.57 47.04 L68.37 45.76 L67.94 44.64 L67.69 43.45 L67.28 42.34 L67.02 41.22 L66.56 40.28 L66.33 39.43 L63.18 34.55 L62.87 33.87 L62.44 33.27 L62.18 32.67 L61.80 32.15 L61.47 31.39 L61.08 30.79 L59.76 27.88 L59.49 26.80 L59.03 25.91 L58.80 24.97 L58.11 23.61 L57.82 23.26 L57.01 22.70 L56.16 22.54 L55.47 22.55 L55.05 22.68 L53.64 23.61 L53.28 24.03 L52.90 24.80 L52.62 26.26 L52.73 28.48 L53.45 31.47 L54.03 32.50 L54.25 33.27 L54.56 33.87 L54.60 34.21 L54.40 34.55 L52.91 36.09 L51.84 38.23 L50.43 40.62 L49.66 41.82 L49.49 41.94 L49.33 41.82 L49.30 41.48 L49.46 40.71 L50.04 39.51 L50.51 38.87 L51.21 37.55 L51.82 36.01 L51.81 35.07 L51.35 33.61 L51.20 32.16 L50.73 29.59 L50.73 26.94 L50.83 26.26 L51.40 24.03 L52.27 22.32 L52.14 21.99 L51.61 21.72 L51.71 21.55 L52.74 21.36 L53.51 21.46 L54.11 21.65 L54.53 21.63 L54.82 21.47 L56.16 20.14 L56.41 20.00 L56.57 20.18 L56.93 21.21 L58.72 21.99 L59.34 22.58 L59.92 23.43 L60.30 24.55 L60.73 25.32 L60.99 26.17 L61.40 26.86 L61.67 27.62 L62.07 28.22 L62.36 28.99 L62.75 29.59 L63.04 30.36 L65.13 33.87 L67.58 37.38 L68.30 38.55 L68.90 39.79 L69.67 43.11 L69.96 45.24 L70.30 46.36 L70.50 48.92 L70.89 50.97 L71.14 53.28 L71.08 53.80 L70.87 54.08Z M36.14 68.09 L35.97 68.15 L35.78 68.08 L35.66 67.82 L35.68 67.57 L36.49 65.17 L37.18 63.97 L37.77 63.05 L38.76 61.84 L39.54 61.07 L41.28 59.70 L43.04 58.67 L43.71 58.16 L46.32 56.91 L47.18 56.64 L47.95 56.17 L49.06 55.85 L49.91 55.47 L51.10 55.16 L51.97 54.78 L53.25 54.53 L54.45 54.09 L56.93 53.54 L57.43 53.28 L57.62 52.94 L57.47 52.43 L57.10 52.08 L54.79 50.92 L53.34 50.40 L52.65 50.02 L51.80 49.74 L51.11 49.39 L49.91 49.13 L48.89 48.65 L45.89 47.89 L43.93 47.63 L42.39 47.19 L40.08 47.12 L39.72 46.87 L39.71 46.61 L39.83 46.44 L40.25 46.26 L41.96 46.07 L43.84 46.02 L45.64 46.30 L47.09 46.33 L49.23 46.59 L49.57 46.78 L50.99 48.24 L51.43 48.58 L52.48 49.12 L53.93 49.52 L57.44 51.14 L57.87 51.06 L59.07 49.93 L59.24 49.84 L59.41 49.89 L59.51 50.12 L59.73 52.17 L60.12 54.22 L60.43 54.67 L61.97 55.76 L62.05 56.19 L61.80 56.54 L61.20 56.74 L60.18 56.67 L58.21 55.51 L57.44 55.42 L55.82 55.90 L54.19 56.21 L51.97 56.84 L51.03 57.24 L49.83 57.50 L48.97 57.95 L47.95 58.21 L45.81 59.23 L44.95 59.53 L42.64 60.90 L40.68 62.33 L39.82 63.06 L38.51 64.40 L37.77 65.34 L36.14 68.09Z M40.59 89.33 L40.42 89.32 L40.35 89.12 L40.54 88.35 L40.98 87.66 L41.31 86.81 L42.65 84.67 L45.36 80.99 L46.62 79.62 L48.18 78.26 L50.26 76.80 L50.94 76.50 L51.54 76.11 L52.31 75.82 L54.11 74.74 L54.88 74.45 L55.47 74.02 L56.18 73.72 L57.95 72.66 L58.64 72.38 L61.63 70.63 L62.32 70.35 L62.84 69.96 L68.05 66.95 L72.32 64.14 L74.29 62.71 L76.60 60.74 L77.91 59.10 L78.21 58.07 L78.39 57.90 L78.45 58.41 L78.07 59.10 L77.84 60.04 L77.01 61.41 L75.66 62.62 L74.12 63.70 L72.92 64.68 L67.53 68.14 L66.85 68.46 L60.52 72.25 L58.64 73.25 L54.23 75.95 L51.03 78.07 L48.20 80.29 L47.39 80.99 L44.61 83.79 L42.56 86.67 L41.44 88.52 L40.59 89.33Z' fill='#ff7eb6' fill-rule='evenodd'/></g></svg><h2 style="margin:10px 0 2px">Welcome to Pizzico</h2><div class="muted">There's no such thing as too many cooks</div></div>`; }
 function viewOnboard(){
   const o=S.onb[S.me];
-  const head=`<div style="text-align:center;margin:14px 0 18px"><svg class='welcome-icon' aria-hidden='true' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'><defs><filter id='pzglow' x='-30%' y='-30%' width='160%' height='160%'><feGaussianBlur stdDeviation='2.2' result='b'/><feMerge><feMergeNode in='b'/><feMergeNode in='b'/><feMergeNode in='SourceGraphic'/></feMerge></filter></defs><rect width='100' height='100' rx='22' fill='#1c1519'/><g filter='url(#pzglow)'><path d='M40.76 90.92 L37.93 90.91 L36.23 90.41 L34.09 90.11 L31.53 89.53 L30.33 89.04 L29.22 88.76 L25.97 87.40 L24.60 86.66 L22.60 85.36 L21.35 84.44 L19.48 82.79 L18.55 81.51 L18.43 80.91 L18.53 80.22 L19.02 79.28 L23.66 72.95 L24.53 71.33 L24.85 69.62 L24.80 68.59 L24.97 67.39 L25.01 65.43 L25.23 64.32 L25.37 60.81 L26.10 57.39 L27.54 53.45 L28.28 51.98 L30.16 48.84 L31.69 46.70 L34.43 43.45 L40.55 37.55 L43.67 33.84 L44.98 31.90 L46.30 29.51 L47.10 27.45 L48.09 24.03 L48.77 22.58 L49.71 21.21 L50.43 20.60 L51.88 20.02 L52.91 19.93 L54.19 20.17 L54.62 20.06 L54.85 19.67 L55.03 17.96 L55.47 16.85 L56.16 15.90 L57.06 15.22 L58.21 14.93 L60.09 14.94 L61.59 13.77 L62.49 13.60 L63.26 13.70 L64.80 14.61 L70.82 19.76 L72.89 22.32 L79.25 29.67 L80.69 31.56 L81.27 32.59 L81.75 34.64 L81.77 35.58 L81.53 37.12 L81.24 44.90 L80.90 48.07 L80.63 52.26 L80.17 55.25 L79.89 58.50 L79.16 60.28 L77.98 62.01 L75.66 64.06 L72.92 66.11 L67.53 69.57 L58.64 74.72 L54.28 77.39 L51.03 79.54 L48.19 81.76 L46.07 83.81 L44.04 86.64 L42.28 89.38 L41.02 90.54 L40.76 90.92Z M57.67 49.61 L58.00 49.26 L58.08 48.66 L58.07 44.30 L57.77 41.31 L57.37 39.86 L56.67 38.49 L55.30 36.07 L55.05 35.84 L54.79 35.81 L54.29 36.26 L53.25 38.28 L50.75 42.51 L50.49 43.79 L50.69 45.67 L51.05 46.70 L51.54 47.16 L52.57 47.68 L53.91 48.07 L57.18 49.56 L57.67 49.61Z' fill='none' stroke='#ff7eb6' stroke-width='2.2' stroke-linejoin='round'/><path d='M77.28 50.67 L77.03 50.67 L76.86 50.55 L76.70 50.12 L76.63 48.32 L76.23 46.18 L75.92 43.19 L75.40 40.97 L75.15 38.91 L74.79 37.80 L74.54 35.84 L73.87 34.04 L72.32 31.88 L63.86 22.24 L60.87 16.51 L60.81 16.08 L61.12 15.71 L61.55 15.67 L61.97 15.96 L62.79 17.02 L63.42 18.13 L63.77 18.98 L65.12 21.12 L67.19 23.61 L70.97 27.62 L72.03 28.91 L74.55 31.64 L75.06 32.25 L75.83 33.53 L76.52 36.01 L76.83 38.49 L77.08 39.26 L77.23 40.54 L77.33 43.53 L77.58 45.33 L77.53 47.30 L77.75 48.49 L77.72 50.12 L77.55 50.46 L77.28 50.67Z M70.87 54.08 L70.61 54.07 L70.42 53.88 L69.98 52.68 L69.70 51.32 L69.32 50.12 L69.04 48.41 L68.57 47.04 L68.37 45.76 L67.94 44.64 L67.69 43.45 L67.28 42.34 L67.02 41.22 L66.56 40.28 L66.33 39.43 L63.18 34.55 L62.87 33.87 L62.44 33.27 L62.18 32.67 L61.80 32.15 L61.47 31.39 L61.08 30.79 L59.76 27.88 L59.49 26.80 L59.03 25.91 L58.80 24.97 L58.11 23.61 L57.82 23.26 L57.01 22.70 L56.16 22.54 L55.47 22.55 L55.05 22.68 L53.64 23.61 L53.28 24.03 L52.90 24.80 L52.62 26.26 L52.73 28.48 L53.45 31.47 L54.03 32.50 L54.25 33.27 L54.56 33.87 L54.60 34.21 L54.40 34.55 L52.91 36.09 L51.84 38.23 L50.43 40.62 L49.66 41.82 L49.49 41.94 L49.33 41.82 L49.30 41.48 L49.46 40.71 L50.04 39.51 L50.51 38.87 L51.21 37.55 L51.82 36.01 L51.81 35.07 L51.35 33.61 L51.20 32.16 L50.73 29.59 L50.73 26.94 L50.83 26.26 L51.40 24.03 L52.27 22.32 L52.14 21.99 L51.61 21.72 L51.71 21.55 L52.74 21.36 L53.51 21.46 L54.11 21.65 L54.53 21.63 L54.82 21.47 L56.16 20.14 L56.41 20.00 L56.57 20.18 L56.93 21.21 L58.72 21.99 L59.34 22.58 L59.92 23.43 L60.30 24.55 L60.73 25.32 L60.99 26.17 L61.40 26.86 L61.67 27.62 L62.07 28.22 L62.36 28.99 L62.75 29.59 L63.04 30.36 L65.13 33.87 L67.58 37.38 L68.30 38.55 L68.90 39.79 L69.67 43.11 L69.96 45.24 L70.30 46.36 L70.50 48.92 L70.89 50.97 L71.14 53.28 L71.08 53.80 L70.87 54.08Z M36.14 68.09 L35.97 68.15 L35.78 68.08 L35.66 67.82 L35.68 67.57 L36.49 65.17 L37.18 63.97 L37.77 63.05 L38.76 61.84 L39.54 61.07 L41.28 59.70 L43.04 58.67 L43.71 58.16 L46.32 56.91 L47.18 56.64 L47.95 56.17 L49.06 55.85 L49.91 55.47 L51.10 55.16 L51.97 54.78 L53.25 54.53 L54.45 54.09 L56.93 53.54 L57.43 53.28 L57.62 52.94 L57.47 52.43 L57.10 52.08 L54.79 50.92 L53.34 50.40 L52.65 50.02 L51.80 49.74 L51.11 49.39 L49.91 49.13 L48.89 48.65 L45.89 47.89 L43.93 47.63 L42.39 47.19 L40.08 47.12 L39.72 46.87 L39.71 46.61 L39.83 46.44 L40.25 46.26 L41.96 46.07 L43.84 46.02 L45.64 46.30 L47.09 46.33 L49.23 46.59 L49.57 46.78 L50.99 48.24 L51.43 48.58 L52.48 49.12 L53.93 49.52 L57.44 51.14 L57.87 51.06 L59.07 49.93 L59.24 49.84 L59.41 49.89 L59.51 50.12 L59.73 52.17 L60.12 54.22 L60.43 54.67 L61.97 55.76 L62.05 56.19 L61.80 56.54 L61.20 56.74 L60.18 56.67 L58.21 55.51 L57.44 55.42 L55.82 55.90 L54.19 56.21 L51.97 56.84 L51.03 57.24 L49.83 57.50 L48.97 57.95 L47.95 58.21 L45.81 59.23 L44.95 59.53 L42.64 60.90 L40.68 62.33 L39.82 63.06 L38.51 64.40 L37.77 65.34 L36.14 68.09Z M40.59 89.33 L40.42 89.32 L40.35 89.12 L40.54 88.35 L40.98 87.66 L41.31 86.81 L42.65 84.67 L45.36 80.99 L46.62 79.62 L48.18 78.26 L50.26 76.80 L50.94 76.50 L51.54 76.11 L52.31 75.82 L54.11 74.74 L54.88 74.45 L55.47 74.02 L56.18 73.72 L57.95 72.66 L58.64 72.38 L61.63 70.63 L62.32 70.35 L62.84 69.96 L68.05 66.95 L72.32 64.14 L74.29 62.71 L76.60 60.74 L77.91 59.10 L78.21 58.07 L78.39 57.90 L78.45 58.41 L78.07 59.10 L77.84 60.04 L77.01 61.41 L75.66 62.62 L74.12 63.70 L72.92 64.68 L67.53 68.14 L66.85 68.46 L60.52 72.25 L58.64 73.25 L54.23 75.95 L51.03 78.07 L48.20 80.29 L47.39 80.99 L44.61 83.79 L42.56 86.67 L41.44 88.52 L40.59 89.33Z' fill='#ff7eb6' fill-rule='evenodd'/></g></svg><h2 style="margin:10px 0 2px">Welcome to Pizzico</h2><div class="muted">There's no such thing as too many cooks</div></div>`;
+  const head=welcomeHead();
   if(o.step==='create') return `<button class="back" data-act="onbback">${ic('chevL',16)}Back</button>${head}
     <div class="field"><label>Name your recipe book</label><input data-in="onb_book" value="${esc(o.bookName)}"></div>
     <button class="btn" data-act="onbcreate">Create recipe book</button>`;
@@ -606,7 +608,7 @@ function viewOnboard(){
     <div class="field"><label>Invite code</label><input class="codein" data-in="onb_code" value="${esc(o.code)}" placeholder="PIZ-XXXX" autocapitalize="characters" autocomplete="off"></div>
     ${o.err?`<div class="note err" role="alert">${esc(o.err)}</div>`:''}
     <button class="btn" data-act="onbjoin">Join recipe book</button>`;
-  return head+`<div class="field"><label>Your name</label><input data-in="onb_name" value="${esc(o.name)}" placeholder="What should we call you?"></div>
+  return head+`<div class="muted" style="text-align:center;margin:-6px 0 14px">Signed in as ${esc(USERS[S.me].name)}.</div>
     <button class="btn" data-act="onbstep" data-v="create">Start a recipe book</button>
     <div class="muted" style="text-align:center;margin:12px 0">or</div>
     <button class="btn ghost" data-act="onbstep" data-v="join">Join with a code</button>`;
@@ -710,7 +712,7 @@ function viewSheet(){
     inner=`<h3>${esc(S.book.name)}</h3>
     <div class="field"><label>Recipe book name</label><input data-in="bookname" value="${esc(S.book.name)}"></div>
     <div class="field"><label>Members (${mem.length})</label>
-      ${mem.map((k,ix)=>`<div class="bubble ${k}"><div class="h">${esc(USERS[k].name)}${k===S.me?' (you)':''}</div><div class="row between"><span class="muted">${k===S.book.owner?'Started the book':'Joined with the code'} · full access</span>${S.book.owner===S.me&&k!==S.me?`<button class="btn ghost sm" style="color:var(--danger);padding:5px 10px" data-act="rmask" data-v="${k}">Remove</button>`:''}</div></div>`).join('')}</div>
+      ${mem.map((k,ix)=>`<div class="bubble ${USERS[k].cls}"><div class="h">${esc(USERS[k].name)}${k===S.me?' (you)':''}</div><div class="row between"><span class="muted">${k===S.book.owner?'Started the book':'Joined with the code'} · full access</span>${S.book.owner===S.me&&k!==S.me?`<button class="btn ghost sm" style="color:var(--danger);padding:5px 10px" data-act="rmask" data-v="${k}">Remove</button>`:''}</div></div>`).join('')}</div>
     <div class="field"><label>Units</label><div class="tabs"><button class="${S.units==='metric'?'on':''}" data-act="units" data-v="metric">Metric</button><button class="${S.units==='imperial'?'on':''}" data-act="units" data-v="imperial">Imperial</button></div></div>
     <button class="btn ghost" data-act="opentrash" style="margin-bottom:8px">${ic('trash',16)}Recently deleted (${trash.filter(t=>S.day-t.day<7).length})</button>
     <div class="field"><label>Appearance</label><div class="tabs">${[['auto','Auto'],['light','Light'],['dark','Dark']].map(([k,l])=>`<button class="${S.mode===k?'on':''}" data-act="mode" data-v="${k}">${l}</button>`).join('')}</div><div class="muted" style="margin-top:4px">Auto follows your phone's light or dark setting.</div></div>
@@ -723,6 +725,7 @@ function viewSheet(){
         <span style="font:600 14px ui-monospace,Menlo,Consolas,monospace;letter-spacing:1px;color:var(--muted)">${esc(S.book.code)}</span>
         <span class="row" style="gap:14px"><button class="back tlink" style="font-size:13px" data-act="copycode">Copy</button><button class="back tlink" style="font-size:13px" data-act="sharecode">Share</button><button class="back tlink" style="font-size:13px;color:var(--muted)" data-act="resetcode">New code</button></span>
       </div></div>
+    <div class="field" style="margin-top:18px"><label>Your account</label><div class="muted" style="margin-bottom:8px">${esc(USERS[S.me].name)} · ${esc(S.email)}</div><button class="btn ghost sm" data-act="signout">Sign out</button></div>
     <button class="btn ghost" style="color:var(--danger)" data-act="sheet" data-v="leave">Leave this recipe book</button>`;
   }
   if(s==='books'){
@@ -823,7 +826,7 @@ document.addEventListener('click',e=>{
   const el=e.target.closest('[data-act]'); if(!el) return;
   const a=el.dataset.act, v=el.dataset.v, me=S.me;
   const r=S.view?byId(S.view):null;
-  if(a==='photorm'&&r){ r.photo=null; toast('Photo removed'); render(); return; }
+  if(a==='photorm'&&r){ removePhoto(r.photo); r.photo=null; toast('Photo removed'); render(); return; }
   if(a==='closesheet-bg'){ if(e.target===el){S.sheet=null;render();} return; }
   if(a==='chk'||a==='shopchk'){ return; }
   switch(a){
@@ -839,24 +842,21 @@ document.addEventListener('click',e=>{
     case 'edit': {const x=byId(+v); S.add.draft={editId:x.id,title:x.title,source:x.source,url:x.url||'',time:x.time,serves:x.serves,effort:x.effort,ingText:x.ingredients.map(i=>(i.q?i.q+' ':'')+i.name).join('\n'),metText:x.method.join('\n'),needsMethod:!!x.needsMethod,fromPost:x.fromPost||'',meals:[...x.meals],mains:[...x.mains],diets:[...x.diets],cuisine:x.cuisine,customText:x.custom.join(', ')}; S.view=null; S.tab='add'; S.scrollTo=el.dataset.focus==='met'?'met':'top'; break;}
     case 'demotoggle': demoOpen=!demoOpen; break;
     case 'who': demoOpen=window.matchMedia('(min-width:500px)').matches; S.dev[S.me].units=S.units; S.me=v; S.units=S.dev[v].units; S.tab='library'; S.view=null; S.sheet=null; S.cook=null; S.add.draft=null; S.add.shareUrl=''; Object.assign(S.add,{text:'',shots:[],url:'',web:'',step:'link',src:'ig',pasteOpen:false}); loadBook(); break;
-    case 'onbstep': {const o=S.onb[me]; if(!o.name.trim()){toast('Add your name first');return;} o.step=v; o.err=''; break;}
+    case 'onbstep': {const o=S.onb[me]; o.step=v; o.err=''; break;}
     case 'onbback': {const o=S.onb[me]; o.step='welcome'; o.err=''; o.open=false; break;}
-    case 'onbcreate': {const o=S.onb[me]; if(!o.bookName.trim()){toast('Give your recipe book a name');return;}
-      if(!USERS[me].name){USERS[me].name=o.name.trim(); USERS[me].initial=o.name.trim()[0].toUpperCase();}
-      const first=S.books.length===0;
-      const b={id:'b'+(++nid),name:o.bookName.trim(),code:genCode(),open:true,owner:me,members:[me],recipes:first?seedRecipes(me):[],plan:{},shop:[],trash:[]};
-      S.books.push(b); S.dev[me].bookId=b.id; o.open=false; o.step='welcome'; o.bookName='Our Recipe Book'; loadBook(); S.tab='library'; S.view=null; S.sheet=null; toast('‘'+b.name+'’ is ready'); return;}
-    case 'onbjoin': {const o=S.onb[me]; const code=normCode(o.code);
-      if(!code){o.err='Enter the code you were given.';break;}
-      const b=S.books.find(x=>normCode(x.code)===code);
-      if(!b){o.err='That code doesn\'t match any recipe book. Check it with whoever started the book.';break;}
-      if(b.members.includes(me)){o.err='You\'re already in '+b.name+'.';break;}
-      if(!b.open){o.err='This recipe book isn\'t accepting new members right now.';break;}
-      if(!USERS[me].name){USERS[me].name=o.name.trim(); USERS[me].initial=o.name.trim()[0].toUpperCase();}
-      b.members.push(me); S.dev[me].bookId=b.id; o.open=false; o.step='welcome'; o.code=''; loadBook(); S.tab='library'; S.view=null; toast('Joined ‘'+b.name+'’'); return;}
+    case 'onbcreate': {const o=S.onb[me], nm=o.bookName.trim(); if(!nm){toast('Give your recipe book a name');return;} if(S.busy) return; S.busy=true;
+      sb.rpc('create_book',{book_name:nm}).then(async({data,error})=>{ if(error) throw error; S.dev[me].bookId=data.id; o.open=false; o.step='welcome'; o.bookName='Our Recipe Book'; await loadAll(); S.tab='library'; S.view=null; S.sheet=null; toast('‘'+nm+'’ is ready'); })
+        .catch(e=>toast(friendly(e),false,3500)).finally(()=>{ S.busy=false; render(); }); return;}
+    case 'onbjoin': {const o=S.onb[me]; if(!normCode(o.code)){o.err='Enter the code you were given.';break;} if(S.busy) return; S.busy=true;
+      sb.rpc('join_book',{join_code:o.code}).then(async({data,error})=>{ if(error){ o.err=friendly(error); return; }
+          if(!data||!data.id){ o.err='That code doesn\'t match any recipe book. Check it with whoever started the book.'; return; }
+          S.dev[me].bookId=data.id; o.open=false; o.step='welcome'; o.code=''; o.err=''; await loadAll(); S.tab='library'; S.view=null; toast('Joined ‘'+data.name+'’'); })
+        .catch(e=>{ o.err=friendly(e); }).finally(()=>{ S.busy=false; render(); }); return;}
     case 'mode': S.mode=v; break;
     case 'rmask': S.rmTarget=v; S.sheet='removemember'; break;
-    case 'rmyes': {const b=S.book; if(b.owner!==me) break; const k=S.rmTarget; b.members=b.members.filter(x=>x!==k); S.notice[k]='You were removed from ‘'+b.name+'’.'; S.sheet='book'; toast(USERS[k].name+' removed'); return;}
+    case 'rmyes': {const b=S.book; if(b.owner!==me||S.busy) break; const k=S.rmTarget, nm=USERS[k].name; S.busy=true;
+      sb.rpc('remove_member',{b:b.id,target:k}).then(async({error})=>{ if(error) throw error; await loadAll(); S.sheet='book'; toast(nm+' removed'); })
+        .catch(e=>toast(friendly(e),false,3500)).finally(()=>{ S.busy=false; render(); }); return;}
     case 'dismissnotice': delete S.notice[me]; break;
     case 'switchbook': S.dev[me].bookId=v; S.sheet=null; S.view=null; S.tab='library'; loadBook(); break;
     case 'newbook': {const o=S.onb[me]; o.open=true; o.step=v; o.err=''; o.code=''; S.sheet=null; break;}
@@ -864,10 +864,23 @@ document.addEventListener('click',e=>{
     case 'restore': restore(+el.dataset.id); toast('Recipe restored'); return;
     case 'undodel': if(restore(S.lastDel)){S.toast=null;S.toastUndo=false;} break;
     case 'skipday': {S.day++; S.books.forEach(b=>{b.trash=b.trash.filter(t=>S.day-t.day<7);}); trash=active?active.trash:[]; break;}
-    case 'copycode': toast('Code copied'); return;
-    case 'sharecode': toast('Your phone\'s share sheet opens here'); return;
-    case 'resetcode': S.book.code=genCode(); toast('New code made. The old one stops working.'); break;
-    case 'leaveyes': {const b=S.book; b.members=b.members.filter(k=>k!==me); if(b.owner===me&&b.members.length) b.owner=b.members[0]; if(!b.members.length){S.books=S.books.filter(x=>x!==b);} S.dev[me].bookId=null; S.onb[me].step='welcome'; S.onb[me].open=false; S.onb[me].err=''; S.sheet=null; S.view=null; S.tab='library'; loadBook(); break;}
+    case 'copycode': (async()=>{ try{ await navigator.clipboard.writeText(S.book.code); toast('Code copied'); }catch(err){ toast('Press and hold the code to copy it'); } })(); return;
+    case 'sharecode': {const txt='Join my recipe book on Pizzico: https://stefdicembre.github.io/pizzico/ and tap Join with a code. Code: '+S.book.code; if(navigator.share){ navigator.share({text:txt}).catch(()=>{}); } else { navigator.clipboard.writeText(txt).then(()=>toast('Invite copied'),()=>toast('Press and hold the code to copy it')); } return;}
+    case 'resetcode': sb.rpc('new_book_code',{b:S.book.id}).then(({data,error})=>{ if(error) return toast(friendly(error),false,3500); S.book.code=data; toast('New code made. The old one stops working.'); }); return;
+    case 'leaveyes': {const b=S.book; if(S.busy) return; S.busy=true; S.leaving=b.id;
+      sb.rpc('leave_book',{b:b.id}).then(()=>{ S.books=S.books.filter(x=>x!==b); S.dev[me].bookId=null; S.onb[me].step='welcome'; S.onb[me].open=false; S.onb[me].err=''; S.sheet=null; S.view=null; S.tab='library'; active=null; loadBook(); })
+        .catch(e=>toast(friendly(e),false,3500)).finally(()=>{ S.busy=false; S.leaving=null; render(); }); return;}
+    case 'authsend': {const au=S.auth, nm=au.name.trim(), em=au.email.trim().toLowerCase();
+      if(!nm){ au.err='Add your name first.'; break; } if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(em)){ au.err='Check your email address.'; break; }
+      if(au.busy) return; au.busy=true; au.err=''; au.email=em; render();
+      sb.auth.signInWithOtp({email:em,options:{shouldCreateUser:true,data:{name:nm}}}).then(({error})=>{ if(error) throw error; if(au.step==='code') toast('New code sent'); au.step='code'; au.code=''; })
+        .catch(e=>{ au.err=friendly(e); }).finally(()=>{ au.busy=false; render(); }); return;}
+    case 'authverify': {const au=S.auth, tok=au.code.replace(/\D/g,'');
+      if(tok.length<6){ au.err='Type the 6-digit code from the email.'; break; } if(au.busy) return; au.busy=true; au.err=''; render();
+      sb.auth.verifyOtp({email:au.email,token:tok,type:'email'}).then(async r=>{ if(r.error) r=await sb.auth.verifyOtp({email:au.email,token:tok,type:'signup'}).then(x=>x.error?r:x); const {data,error}=r; if(error) throw error; if(!data||!data.session) throw new Error('That code didn’t work. Ask for a new one.'); au.code=''; await enter(data.session); })
+        .catch(e=>{ au.err=friendly(e); }).finally(()=>{ au.busy=false; render(); }); return;}
+    case 'authback': S.auth.step='email'; S.auth.err=''; break;
+    case 'signout': S.sheet=null; sb.auth.signOut().then(()=>{},()=>{}); return;
     case 'tab': S.tab=v; S.view=null; if(v!=='add') S.add.draft=null; break;
     case 'open': S.view=+v; break;
     case 'back': S.view=null; break;
@@ -883,7 +896,7 @@ document.addEventListener('click',e=>{
     case 'rxc': {const c=r.comments[+el.dataset.c]; const arr=(c.reacts[el.dataset.e]=c.reacts[el.dataset.e]||[]); const i=arr.indexOf(me); i<0?arr.push(me):arr.splice(i,1); break;}
     case 'postc': if(S.commentDraft.trim()){r.comments.push({who:me,text:S.commentDraft.trim(),reacts:{}}); S.commentDraft='';} break;
     case 'star': S.rateDraft.stars=+v; break;
-    case 'logcook': if(!S.rateDraft.stars){toast('Tap a star rating first');return;} r.cooked.unshift({who:me,stars:S.rateDraft.stars,note:S.rateDraft.note,date:'Today'}); S.sheet=null; toast('Added to your journal'); return;
+    case 'logcook': if(!S.rateDraft.stars){toast('Tap a star rating first');return;} r.cooked.unshift({who:me,stars:S.rateDraft.stars,note:S.rateDraft.note,date:'Today',at:new Date().toISOString()}); S.sheet=null; toast('Added to your journal'); return;
     case 'cookmode': S.cook={id:+v,i:0}; break;
     case 'cookexit': S.cook=null; break;
     case 'cookprev': if(S.cook.i>0) S.cook.i--; break;
@@ -958,7 +971,7 @@ document.addEventListener('click',e=>{
 document.addEventListener('change',e=>{
   const el=e.target;
   if(el.id==='shotin'&&el.files&&el.files.length){ [...el.files].forEach(f=>S.add.shots.push({src:URL.createObjectURL(f),label:f.name,file:f})); el.value=''; render(); return; }
-  if(el.id==='photoin'&&el.files&&el.files[0]){ const r=byId(S.view); const fr=new FileReader(); fr.onload=()=>{ const im=new Image(); im.onload=()=>{ const k=Math.min(1,900/Math.max(im.width,im.height)); const c=document.createElement('canvas'); c.width=Math.round(im.width*k); c.height=Math.round(im.height*k); c.getContext('2d').drawImage(im,0,0,c.width,c.height); r.photo=c.toDataURL('image/jpeg',.82); r.photoBy=S.me; toast('Photo added'); render(); }; im.src=fr.result; }; fr.readAsDataURL(el.files[0]); return; }
+  if(el.id==='photoin'&&el.files&&el.files[0]){ const f=el.files[0], r=byId(S.view); el.value=''; if(r) uploadPhoto(r,f); return; }
   if(el.dataset.act==='shopchk'){S.shop[+el.dataset.i].done=el.checked; render(); return;}
   if(el.dataset.act==='chk'){const r=byId(S.view); const c=S.checked[r.id]=S.checked[r.id]||{}; c[el.dataset.i]=el.checked; render();}
 });
@@ -966,10 +979,11 @@ document.addEventListener('input',e=>{
   const el=e.target, k=el.dataset.in; if(!k) return;
   const v=el.value, d=S.add.draft;
   const m={q:()=>{S.q=v;render();const q=$('#q');q.focus();q.setSelectionRange(v.length,v.length);},
-    note:()=>{byId(S.view).notes[S.me].text=v},cmt:()=>{S.commentDraft=v},ci:()=>{S.cantInput=v},quickinput:()=>{S.quickInput=v},shopinput:()=>{S.shopInput=v},onb_name:()=>{S.onb[S.me].name=v},onb_book:()=>{S.onb[S.me].bookName=v},onb_code:()=>{S.onb[S.me].code=v},bookname:()=>{S.book.name=v},
+    note:()=>{byId(S.view).notes[S.me].text=v},cmt:()=>{S.commentDraft=v},ci:()=>{S.cantInput=v},quickinput:()=>{S.quickInput=v},shopinput:()=>{S.shopInput=v},onb_name:()=>{S.onb[S.me].name=v},onb_book:()=>{S.onb[S.me].bookName=v},onb_code:()=>{S.onb[S.me].code=v},bookname:()=>{S.book.name=v},auth_name:()=>{S.auth.name=v},auth_email:()=>{S.auth.email=v},auth_code:()=>{S.auth.code=v},
     addtext:()=>{S.add.text=v},readcode:()=>{S.readCode=v.trim();store.set('readcode',S.readCode)},addurl:()=>{S.add.url=v},weburl:()=>{S.add.web=v},ratenote:()=>{S.rateDraft.note=v},
     d_title:()=>{d.title=v},d_source:()=>{d.source=v},d_time:()=>{d.time=v},d_serves:()=>{d.serves=v},d_ing:()=>{d.ingText=v},d_met:()=>{d.metText=v},d_custom:()=>{d.customText=v}};
   m[k]&&m[k]();
+  queueSync();
 });
 document.addEventListener('keydown',e=>{
   if(e.key==='Escape'&&(S.sheet||S.cook)){ S.sheet=null; S.cook=null; render(); return; }
@@ -978,8 +992,214 @@ document.addEventListener('keydown',e=>{
   if(e.target.dataset.in==='quickinput'){document.querySelector('[data-act=quickadd]').click();}
   if(e.target.dataset.in==='shopinput'){document.querySelector('[data-act=shopmanual]').click();}
   if(e.target.dataset.in==='cmt'){document.querySelector('[data-act=postc]').click();}
+  if(e.target.dataset.in==='auth_name'||e.target.dataset.in==='auth_email'){document.querySelector('[data-act=authsend]').click();}
+  if(e.target.dataset.in==='auth_code'){document.querySelector('[data-act=authverify]').click();}
 });
-render();
+
+// ---------- accounts, books and recipes (Supabase, stage 2) ----------
+const SUPABASE_URL = 'https://iqfcqxjgxrfkmrbrthmd.supabase.co';
+const SUPABASE_KEY = 'sb_publishable__jrd2YNMRBF-gLJkVEFkdQ_ttoyfURE';   // public key: safe in the page, the database rules do the protecting
+const PERSON_CLS = ['stef','partner','third'];                          // colour 0 blue, 1 amber, 2 green (CSS classes)
+let sb = null, rt = null, syncTimer = null, syncBusy = false, syncAgain = false, loadTimer = null;
+const saved = { rec:new Map(), del:new Map(), book:new Map() };         // what the database last held, to spot changes
+const canon = v => v===undefined ? 'null' : Array.isArray(v) ? '['+v.map(canon).join(',')+']'
+  : (v && typeof v==='object') ? '{'+Object.keys(v).filter(k=>v[k]!==undefined).sort().map(k=>JSON.stringify(k)+':'+canon(v[k])).join(',')+'}' : JSON.stringify(v);
+const REC_DEFAULTS = () => ({favs:{},cooked:[],notes:{},comments:[],reacts:{},custom:[],diets:[],meals:[],mains:[],cuisine:'',source:'Instagram',ingredients:[],method:[]});
+const strip = r => { const { id, sid, ...rest } = r; return rest; };
+function friendly(e){
+  const m=String((e&&e.message)||e||'');
+  if(/too many tries/i.test(m)) return m;
+  if(/rate limit|too many|security purposes/i.test(m)) return 'Too many tries. Wait a minute and try again.';
+  if(/expired|invalid|incorrect/i.test(m)) return 'That code didn’t work. Check it, or ask for a new one.';
+  if(/fetch|network|failed to/i.test(m)) return 'Couldn’t reach Pizzico. Check your connection and try again.';
+  return m||'Something went wrong. Try again.';
+}
+function setUser(id,name,colour){ const n=(name||'').trim(); USERS[id]={name:n||'Someone',initial:(n[0]||'?').toUpperCase(),cls:PERSON_CLS[(colour||0)%3]}; }
+function recFromRow(row){ const r=Object.assign(REC_DEFAULTS(),row.data||{}); r.sid=row.id; r.added=r.added||row.created_by; return r; }
+const normPayload = row => canon(strip(recFromRow(row)));
+function applyRow(target,row){ const n=recFromRow(row), id=target.id; Object.keys(target).forEach(k=>delete target[k]); Object.assign(target,n); target.id=id; return target; }
+
+// Load everything this person can see: their books, who is in them, and the recipes.
+async function loadAll(){
+  const uid=S.me;
+  const [pr,bm,rc]=await Promise.all([
+    sb.from('profiles').select('name').eq('id',uid).maybeSingle(),
+    sb.from('book_members').select('book_id,user_id,colour,joined_at,profiles(name),books(id,name,code,owner_id)'),
+    sb.from('recipes').select('id,book_id,data,created_by,created_at,deleted_at,deleted_by').order('created_at',{ascending:false})
+  ]);
+  const err=pr.error||bm.error||rc.error; if(err) throw err;
+  let myName=(pr.data&&pr.data.name)||'';
+  if(!myName&&S.auth.name.trim()){ myName=S.auth.name.trim(); await sb.from('profiles').update({name:myName}).eq('id',uid); }
+  setUser(uid,myName,0); S.onb[uid].name=myName||'friend';
+  const members=new Map(), raws=new Map();
+  (bm.data||[]).forEach(m=>{ const b=m.books; if(!b) return; raws.set(b.id,b); if(!members.has(b.id)) members.set(b.id,[]); members.get(b.id).push(m);
+    setUser(m.user_id,(m.profiles&&m.profiles.name)||'',m.colour); });
+  const prev=S.books, dropped=prev.filter(b=>!raws.has(b.id)), now=Date.now(), purge=[];
+  S.books=[...raws.values()].map(raw=>{
+    const b=prev.find(x=>x.id===raw.id)||{id:raw.id,open:true,recipes:[],plan:{},shop:[],trash:[]};
+    b.name=raw.name; b.code=raw.code; b.owner=raw.owner_id; b.open=true;
+    b.members=members.get(raw.id).sort((x,y)=>new Date(x.joined_at)-new Date(y.joined_at)).map(m=>m.user_id);
+    saved.book.set(b.id,b.name);
+    const oldRecs=[...b.recipes,...b.trash.map(t=>t.r)], recs=[], tr=[];
+    (rc.data||[]).filter(x=>x.book_id===raw.id).forEach(row=>{
+      const age=row.deleted_at?(now-new Date(row.deleted_at))/864e5:0;
+      if(row.deleted_at&&age>=7){ purge.push(row.id); return; }
+      const old=oldRecs.find(x=>x.sid===row.id);
+      const r=old?applyRow(old,row):Object.assign(recFromRow(row),{id:++nid});
+      saved.rec.set(row.id,canon(strip(r))); saved.del.set(row.id,!!row.deleted_at);
+      if(row.deleted_at) tr.push({r,by:row.deleted_by,day:S.day-Math.floor(age),slots:[]}); else recs.push(r);
+    });
+    b.recipes=recs; b.trash=tr; return b; });
+  if(purge.length) sb.from('recipes').delete().in('id',purge).then(()=>{},()=>{});
+  active=null; loadBook();
+  return dropped;
+}
+
+// ----- saving: spot what changed since the database last held it, and send just that -----
+function queueSync(){ if(!sb||!S.me) return; clearTimeout(syncTimer); syncTimer=setTimeout(syncNow,500); }
+async function pushRecipe(b,r,isDel){
+  const data=strip(r), norm=canon(data), when=new Date().toISOString();
+  if(!r.sid){
+    r.sid=crypto.randomUUID(); saved.rec.set(r.sid,norm); saved.del.set(r.sid,isDel);
+    const {error}=await sb.from('recipes').insert({id:r.sid,book_id:b.id,data,created_by:S.me,deleted_at:isDel?when:null,deleted_by:isDel?S.me:null});
+    if(error){ saved.rec.delete(r.sid); saved.del.delete(r.sid); r.sid=null; throw error; }
+    return;
+  }
+  const prevRec=saved.rec.get(r.sid), prevDel=!!saved.del.get(r.sid), patch={};
+  if(prevRec!==norm) patch.data=data;
+  if(isDel!==prevDel){ patch.deleted_at=isDel?when:null; patch.deleted_by=isDel?S.me:null; }
+  if(!Object.keys(patch).length) return;
+  saved.rec.set(r.sid,norm); saved.del.set(r.sid,isDel);
+  const {error}=await sb.from('recipes').update(patch).eq('id',r.sid);
+  if(error){ saved.rec.set(r.sid,prevRec); saved.del.set(r.sid,prevDel); throw error; }
+}
+async function syncNow(){
+  if(!sb||!S.me) return;
+  if(syncBusy){ syncAgain=true; return; }
+  syncBusy=true;
+  try{
+    syncOut();
+    for(const b of S.books){
+      const nm=(b.name||'').trim();
+      if(nm&&saved.book.has(b.id)&&saved.book.get(b.id)!==b.name){
+        const prev=saved.book.get(b.id); saved.book.set(b.id,b.name);
+        const {error}=await sb.from('books').update({name:nm}).eq('id',b.id);
+        if(error){ saved.book.set(b.id,prev); throw error; }
+      }
+      for(const r of [...b.recipes]) await pushRecipe(b,r,false);
+      for(const t of [...b.trash]) await pushRecipe(b,t.r,true);
+    }
+  }catch(e){ console.warn('save failed, will retry',e); setTimeout(queueSync,5000); }
+  finally{ syncBusy=false; if(syncAgain){ syncAgain=false; queueSync(); } }
+}
+
+// ----- live updates from the other phones -----
+function renderKeepFocus(){
+  const el=document.activeElement, k=el&&el.dataset&&el.dataset.in, s=el&&el.selectionStart, e2=el&&el.selectionEnd;
+  render();
+  if(k){ const n=document.querySelector('[data-in="'+k+'"]'); if(n){ n.focus({preventScroll:true}); try{ n.setSelectionRange(s,e2); }catch(_){} } }
+}
+function dropLocal(sid){
+  S.books.forEach(b=>{
+    const i=b.recipes.findIndex(x=>x.sid===sid); if(i>=0){ if(S.view===b.recipes[i].id) S.view=null; b.recipes.splice(i,1); }
+    const j=b.trash.findIndex(t=>t.r.sid===sid); if(j>=0) b.trash.splice(j,1);
+  });
+  saved.rec.delete(sid); saved.del.delete(sid);
+}
+function onRecipeChange(p){
+  try{
+    if(p.eventType==='DELETE'){ const sid=p.old&&p.old.id; if(sid){ dropLocal(sid); renderKeepFocus(); } return; }
+    const row=p.new; if(!row||!row.id) return;
+    syncOut();
+    const b=S.books.find(x=>x.id===row.book_id); if(!b){ queueReload(); return; }
+    const isDel=!!row.deleted_at, norm=normPayload(row);
+    const r=b.recipes.find(x=>x.sid===row.id), t=b.trash.find(x=>x.r.sid===row.id), cur=r||(t&&t.r);
+    if(cur&&saved.rec.get(row.id)===norm&&saved.del.get(row.id)===isDel) return;   // that's just our own save coming back
+    const target=cur?applyRow(cur,row):Object.assign(recFromRow(row),{id:++nid});
+    saved.rec.set(row.id,norm); saved.del.set(row.id,isDel);
+    if(r&&isDel){ b.recipes.splice(b.recipes.indexOf(r),1); b.trash.unshift({r:target,by:row.deleted_by,day:S.day,slots:[]}); if(S.view===target.id) S.view=null; }
+    else if(t&&!isDel){ b.trash.splice(b.trash.indexOf(t),1); b.recipes.unshift(target); }
+    else if(!cur){ if(isDel) b.trash.unshift({r:target,by:row.deleted_by,day:S.day,slots:[]}); else b.recipes.unshift(target); }
+    renderKeepFocus();
+  }catch(e){ console.warn('live update',e); }
+}
+function queueReload(){
+  clearTimeout(loadTimer);
+  loadTimer=setTimeout(async()=>{
+    if(!sb||!S.me) return;
+    try{ await syncNow(); const dropped=await loadAll();
+      if(dropped.length&&!S.leaving) S.notice[S.me]='You were removed from ‘'+dropped[0].name+'’.';
+      renderKeepFocus();
+    }catch(e){ console.warn('reload failed',e); }
+  },700);
+}
+function startRealtime(){
+  if(rt) return;
+  rt=sb.channel('pizzico-live')
+    .on('postgres_changes',{event:'*',schema:'public',table:'recipes'},onRecipeChange)
+    .on('postgres_changes',{event:'*',schema:'public',table:'books'},queueReload)
+    .on('postgres_changes',{event:'*',schema:'public',table:'book_members'},queueReload)
+    .subscribe();
+}
+document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='visible'&&S.me&&sb) queueReload(); });
+
+// ----- photos -----
+function removePhoto(url){ try{ const i=url?url.indexOf('/photos/'):-1; if(i>0) sb.storage.from('photos').remove([decodeURIComponent(url.slice(i+8))]); }catch(e){} }
+async function uploadPhoto(r,file){
+  const b=S.books.find(x=>x.recipes.includes(r)); if(!b){ toast('Couldn’t add the photo'); return; }
+  toast('Adding photo…',false,10000);
+  try{
+    const blob=await new Promise((ok,bad)=>{ const u=URL.createObjectURL(file), im=new Image();
+      im.onload=()=>{ const k=Math.min(1,1200/Math.max(im.width,im.height)); const c=document.createElement('canvas'); c.width=Math.round(im.width*k); c.height=Math.round(im.height*k);
+        c.getContext('2d').drawImage(im,0,0,c.width,c.height); URL.revokeObjectURL(u); c.toBlob(x=>x?ok(x):bad(new Error('Couldn’t read that photo.')),'image/jpeg',.82); };
+      im.onerror=()=>{ URL.revokeObjectURL(u); bad(new Error('Couldn’t open that photo.')); }; im.src=u; });
+    const path=b.id+'/'+crypto.randomUUID()+'.jpg';
+    const {error}=await sb.storage.from('photos').upload(path,blob,{contentType:'image/jpeg',cacheControl:'31536000'}); if(error) throw error;
+    const old=r.photo; r.photo=sb.storage.from('photos').getPublicUrl(path).data.publicUrl; r.photoBy=S.me; removePhoto(old);
+    toast('Photo added');
+  }catch(e){ toast(friendly(e),false,4000); }
+}
+
+// ----- signing in and out -----
+async function enter(session){
+  const uid=session.user.id; S.me=uid; S.email=session.user.email||'';
+  S.dev[uid]=S.dev[uid]||{units:'metric',bookId:store.get('book')||null};
+  S.onb[uid]=S.onb[uid]||{step:'welcome',name:'',bookName:'Our Recipe Book',code:'',err:'',open:false};
+  try{ await loadAll(); }catch(e){ console.warn(e); toast('Couldn’t load your recipes. Check your connection.',false,4000); }
+  S.ready=true; S.tab='library'; startRealtime(); render();
+}
+function goSignedOut(){
+  if(rt){ try{ sb.removeChannel(rt); }catch(e){} rt=null; }
+  S.me=null; S.email=''; S.books=[]; recipes=[]; plan={}; S.shop=[]; trash=[]; active=null; S.view=null; S.sheet=null; S.tab='library';
+  saved.rec.clear(); saved.del.clear(); saved.book.clear();
+  S.auth={step:'email',email:S.auth.email||'',name:S.auth.name||'',code:'',err:'',busy:false}; S.ready=true; render();
+}
+async function boot(){
+  render();
+  if(!window.supabase){ S.ready=true; S.auth.err='Couldn’t load the sign-in tools. Check your connection and reload.'; render(); return; }
+  sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:false}});
+  sb.auth.onAuthStateChange(ev=>{ if(ev==='SIGNED_OUT') goSignedOut(); });
+  try{
+    const {data}=await sb.auth.getSession();
+    if(data&&data.session) await enter(data.session); else { S.ready=true; render(); }
+  }catch(e){ S.ready=true; S.auth.err=friendly(e); render(); }
+}
+function viewSignIn(){
+  const a=S.auth, head=welcomeHead();
+  if(!S.ready) return head+'<div class="muted" style="text-align:center">Loading…</div>';
+  const err=a.err?`<div class="note err" role="alert">${esc(a.err)}</div>`:'';
+  if(a.step==='code') return `<button class="back" data-act="authback">${ic('chevL',16)}Back</button>${head}
+    <div class="muted" style="text-align:center;margin-bottom:12px">We sent a 6-digit code to ${esc(a.email)}. It can take a minute. Check your spam folder too.</div>
+    <div class="field"><label>6-digit code</label><input class="codein" data-in="auth_code" inputmode="numeric" autocomplete="one-time-code" maxlength="6" value="${esc(a.code)}" placeholder="123456"></div>${err}
+    <button class="btn" data-act="authverify" ${a.busy?'disabled':''}>${a.busy?'Checking…':'Sign in'}</button>
+    <button class="back tlink" style="display:block;margin:12px auto 0" data-act="authsend">Send a new code</button>`;
+  return head+`<div class="field"><label>Your name</label><input data-in="auth_name" value="${esc(a.name)}" placeholder="What should we call you?" autocomplete="given-name"></div>
+    <div class="field"><label>Email</label><input data-in="auth_email" type="email" inputmode="email" autocomplete="email" autocapitalize="off" value="${esc(a.email)}" placeholder="you@example.com"></div>${err}
+    <button class="btn" data-act="authsend" ${a.busy?'disabled':''}>${a.busy?'Sending…':'Email me a code'}</button>
+    <div class="muted" style="text-align:center;margin-top:12px">No password. We email you a code when you sign in on a new phone.</div>`;
+}
+
+boot();
 </script>
 </body>
 </html>

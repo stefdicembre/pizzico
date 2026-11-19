@@ -654,16 +654,14 @@ function viewSheet(){
     <div class="field"><label>Units</label><div class="tabs"><button class="${S.units==='metric'?'on':''}" data-act="units" data-v="metric">Metric</button><button class="${S.units==='imperial'?'on':''}" data-act="units" data-v="imperial">Imperial</button></div></div>
     <button class="btn ghost" data-act="opentrash" style="margin-bottom:8px">${ic('trash',16)}Recently deleted (${trash.filter(t=>S.day-t.day<7).length})</button>
     <div class="field"><label>Appearance</label><div class="tabs">${[['auto','Auto'],['light','Light'],['dark','Dark']].map(([k,l])=>`<button class="${S.mode===k?'on':''}" data-act="mode" data-v="${k}">${l}</button>`).join('')}</div><div class="muted" style="margin-top:4px">Auto follows your phone's light or dark setting.</div></div>
-    <div class="field"><label>Recipe reading</label><input data-in="readcode" type="password" autocomplete="off" autocapitalize="off" placeholder="Reading code" aria-label="Reading code" value="${esc(S.readCode)}">
-      <div class="muted" style="margin-top:4px">${S.readCode.trim()?'Saved on this phone.':'Type the reading code once on each phone.'}</div>
-      <div class="tabs" style="margin-top:8px" aria-label="Reading model">${[['sonnet','Sonnet'],['haiku','Haiku']].map(([k,l])=>`<button class="${S.readModel===k?'on':''}" data-act="readmodel" data-v="${k}">${l}</button>`).join('')}</div><div class="muted" style="margin-top:4px">For testing which Claude reads best. Haiku is cheaper.</div></div>
+    <div class="field"><label>Recipe reading</label><div class="tabs" style="margin-top:4px" aria-label="Reading model">${[['sonnet','Sonnet'],['haiku','Haiku']].map(([k,l])=>`<button class="${S.readModel===k?'on':''}" data-act="readmodel" data-v="${k}">${l}</button>`).join('')}</div><div class="muted" style="margin-top:4px">Which Claude reads your recipes. Haiku is cheaper and is the default.</div></div>
     <div class="field" style="margin-top:18px"><label>Share this recipe book</label>
       <div class="muted" style="font-size:13px;margin:-2px 0 8px">No such thing as too many cooks. Use this code to invite whoever you want to cook with.</div>
       <div class="row between" style="padding:9px 12px;background:var(--card);border:1px solid var(--line);border-radius:12px">
         <span style="font:600 14px ui-monospace,Menlo,Consolas,monospace;letter-spacing:1px;color:var(--muted)">${esc(S.book.code)}</span>
         <span class="row" style="gap:14px"><button class="back tlink" style="font-size:13px" data-act="copycode">Copy</button><button class="back tlink" style="font-size:13px" data-act="sharecode">Share</button><button class="back tlink" style="font-size:13px;color:var(--muted)" data-act="resetcode">New code</button></span>
       </div></div>
-    <div class="field" style="margin-top:18px"><label>Your account</label><div class="muted" style="margin-bottom:8px">${esc(USERS[S.me].name)} · ${esc(S.email)}</div><button class="btn ghost sm" data-act="signout">Sign out</button></div>
+    <div class="field" style="margin-top:18px"><label>Your account</label><div class="muted">${esc(USERS[S.me].name)}, signed in on this phone. If you ever clear Safari’s data, or remove Pizzico from your Home Screen and add it again, type your name again and rejoin the book with its code.</div></div>
     <button class="btn ghost" style="color:var(--danger)" data-act="sheet" data-v="leave">Leave this recipe book</button>`;
   }
   if(s==='books'){
@@ -719,8 +717,8 @@ function blankDraft(){return {title:'',source:'Own recipe',url:'',time:30,serves
 // READER_URL: the read-recipe function's address.
 const READER_URL = 'https://iqfcqxjgxrfkmrbrthmd.supabase.co/functions/v1/read-recipe';
 const store = { get(k){ try{ return localStorage.getItem('pizzico.'+k)||''; }catch(e){ return ''; } }, set(k,v){ try{ localStorage.setItem('pizzico.'+k,v); }catch(e){} } };
-S.readCode = store.get('readcode'); S.readModel = store.get('readmodel')||'haiku';
-const readerReady = () => !!(READER_URL && S.readCode.trim());
+S.readModel = store.get('readmodel')||'haiku';
+const readerReady = () => !!(READER_URL && sb && S.me);
 // Shrink a screenshot on the phone before sending (long edge 1568px, which is what Claude reads at anyway).
 function shrinkShot(file){
   return new Promise((ok,bad)=>{ const u=URL.createObjectURL(file), im=new Image();
@@ -730,8 +728,9 @@ function shrinkShot(file){
     im.onerror=()=>{ URL.revokeObjectURL(u); bad(new Error('One of the screenshots couldn’t be opened.')); }; im.src=u; });
 }
 async function askReader(body){
-  let r;
-  try{ r=await fetch(READER_URL,{method:'POST',headers:{'content-type':'application/json','x-pizzico-code':S.readCode.trim()},body:JSON.stringify({...body,model:S.readModel})}); }
+  let r, tok='';
+  try{ const g=await sb.auth.getSession(); tok=(g.data&&g.data.session&&g.data.session.access_token)||''; }catch(e){}
+  try{ r=await fetch(READER_URL,{method:'POST',headers:{'content-type':'application/json','apikey':SUPABASE_KEY,'authorization':'Bearer '+tok},body:JSON.stringify({...body,model:S.readModel})}); }
   catch(e){ throw new Error('Couldn’t reach Pizzico’s reader. Check your connection and try again.'); }
   const j=await r.json().catch(()=>({}));
   if(!r.ok||!j.ok) throw new Error(j.error||'Reading failed. Try again.');
@@ -800,16 +799,10 @@ document.addEventListener('click',e=>{
     case 'leaveyes': {const b=S.book; if(S.busy) return; S.busy=true; S.leaving=b.id;
       sb.rpc('leave_book',{b:b.id}).then(()=>{ S.books=S.books.filter(x=>x!==b); S.dev[me].bookId=null; S.onb[me].step='welcome'; S.onb[me].open=false; S.onb[me].err=''; S.sheet=null; S.view=null; S.tab='library'; active=null; loadBook(); })
         .catch(e=>toast(friendly(e),false,3500)).finally(()=>{ S.busy=false; S.leaving=null; render(); }); return;}
-    case 'authsend': {const au=S.auth, nm=au.name.trim(), em=au.email.trim().toLowerCase();
-      if(!nm){ au.err='Add your name first.'; break; } if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(em)){ au.err='Check your email address.'; break; }
-      if(au.busy) return; au.busy=true; au.err=''; au.email=em; render();
-      sb.auth.signInWithOtp({email:em,options:{shouldCreateUser:true,data:{name:nm}}}).then(({error})=>{ if(error) throw error; if(au.step==='code') toast('New code sent'); au.step='code'; au.code=''; })
+    case 'authgo': {const au=S.auth, nm=au.name.trim();
+      if(!nm){ au.err='Add your name first.'; break; } if(au.busy) return; au.busy=true; au.err=''; render();
+      sb.auth.signInAnonymously({options:{data:{name:nm}}}).then(async({data,error})=>{ if(error) throw error; if(!data||!data.session) throw new Error('Couldn’t get started. Try again.'); await enter(data.session); })
         .catch(e=>{ au.err=friendly(e); }).finally(()=>{ au.busy=false; render(); }); return;}
-    case 'authverify': {const au=S.auth, tok=au.code.replace(/\D/g,'');
-      if(tok.length<6){ au.err='Type the 6-digit code from the email.'; break; } if(au.busy) return; au.busy=true; au.err=''; render();
-      sb.auth.verifyOtp({email:au.email,token:tok,type:'email'}).then(async r=>{ if(r.error) r=await sb.auth.verifyOtp({email:au.email,token:tok,type:'signup'}).then(x=>x.error?r:x); const {data,error}=r; if(error) throw error; if(!data||!data.session) throw new Error('That code didn’t work. Ask for a new one.'); au.code=''; await enter(data.session); })
-        .catch(e=>{ au.err=friendly(e); }).finally(()=>{ au.busy=false; render(); }); return;}
-    case 'authback': S.auth.step='email'; S.auth.err=''; break;
     case 'signout': S.sheet=null; sb.auth.signOut().then(()=>{},()=>{}); return;
     case 'tab': S.tab=v; S.view=null; if(v!=='add') S.add.draft=null; break;
     case 'open': S.view=+v; break;
@@ -846,7 +839,7 @@ document.addEventListener('click',e=>{
     case 'othershots': S.add.src='shots'; S.add.step='caption'; S.add.pasteOpen=false; break;
     case 'webgo': {const u=S.add.web.trim(); if(!u){toast('Paste a link first');return;} if(S.add.busy) return;
       if(isIG(u)){toast('For Instagram, go back and paste the link there.',false,2800);return;}
-      if(!readerReady()){ toast('Add your reading code in Settings first.',false,3000); return; }
+      if(!readerReady()){ toast('Sign in first.',false,3000); return; }
       S.add.busy=true; render();
       askReader({kind:'url',url:/^https?:\/\//i.test(u)?u:'https://'+u}).then(res=>{ S.add.draft=draftFrom(res,{source:'Website',url:res.url||u}); S.add.showOrig=false; })
         .catch(err=>toast(err.message,false,4000)).finally(()=>{ S.add.busy=false; render(); });
@@ -857,7 +850,7 @@ document.addEventListener('click',e=>{
       const pasted=ig&&a.pasteOpen;
       if(pasted&&!a.text.trim()){toast('Paste the caption first');return;}
       if(!pasted&&!n){ toast('Add a screenshot first'); return; }
-      if(!readerReady()){ toast('Add your reading code in Settings first.',false,3000); return; }
+      if(!readerReady()){ toast('Sign in first.',false,3000); return; }
       a.busy=true; render();
       (async()=>{ try{
           const res=pasted?await askReader({kind:'text',text:a.text})
@@ -899,8 +892,8 @@ document.addEventListener('input',e=>{
   const el=e.target, k=el.dataset.in; if(!k) return;
   const v=el.value, d=S.add.draft;
   const m={q:()=>{S.q=v;render();const q=$('#q');q.focus();q.setSelectionRange(v.length,v.length);},
-    note:()=>{byId(S.view).note=v},cmt:()=>{S.commentDraft=v},ci:()=>{S.cantInput=v},quickinput:()=>{S.quickInput=v},shopinput:()=>{S.shopInput=v},onb_name:()=>{S.onb[S.me].name=v},onb_book:()=>{S.onb[S.me].bookName=v},onb_code:()=>{S.onb[S.me].code=v},bookname:()=>{S.book.name=v},auth_name:()=>{S.auth.name=v},auth_email:()=>{S.auth.email=v},auth_code:()=>{S.auth.code=v},
-    addtext:()=>{S.add.text=v},readcode:()=>{S.readCode=v.trim();store.set('readcode',S.readCode)},addurl:()=>{S.add.url=v},weburl:()=>{S.add.web=v},
+    note:()=>{byId(S.view).note=v},cmt:()=>{S.commentDraft=v},ci:()=>{S.cantInput=v},quickinput:()=>{S.quickInput=v},shopinput:()=>{S.shopInput=v},onb_name:()=>{S.onb[S.me].name=v},onb_book:()=>{S.onb[S.me].bookName=v},onb_code:()=>{S.onb[S.me].code=v},bookname:()=>{S.book.name=v},auth_name:()=>{S.auth.name=v},
+    addtext:()=>{S.add.text=v},addurl:()=>{S.add.url=v},weburl:()=>{S.add.web=v},
     d_title:()=>{d.title=v},d_source:()=>{d.source=v},d_time:()=>{d.time=v},d_serves:()=>{d.serves=v},d_ing:()=>{d.ingText=v},d_met:()=>{d.metText=v},d_custom:()=>{d.customText=v}};
   m[k]&&m[k]();
   queueSync();
@@ -912,8 +905,7 @@ document.addEventListener('keydown',e=>{
   if(e.target.dataset.in==='quickinput'){document.querySelector('[data-act=quickadd]').click();}
   if(e.target.dataset.in==='shopinput'){document.querySelector('[data-act=shopmanual]').click();}
   if(e.target.dataset.in==='cmt'){document.querySelector('[data-act=postc]').click();}
-  if(e.target.dataset.in==='auth_name'||e.target.dataset.in==='auth_email'){document.querySelector('[data-act=authsend]').click();}
-  if(e.target.dataset.in==='auth_code'){document.querySelector('[data-act=authverify]').click();}
+  if(e.target.dataset.in==='auth_name'){document.querySelector('[data-act=authgo]').click();}
 });
 
 // ---------- accounts, books and recipes (Supabase, stage 2) ----------
@@ -930,6 +922,7 @@ function friendly(e){
   const m=String((e&&e.message)||e||'');
   if(/too many tries/i.test(m)) return m;
   if(/rate limit|too many|security purposes/i.test(m)) return 'Too many tries. Wait a minute and try again.';
+  if(/anonymous/i.test(m)) return 'Sign-in isn’t switched on yet. Tell Stef.';
   if(/expired|invalid|incorrect/i.test(m)) return 'That code didn’t work. Check it, or ask for a new one.';
   if(/fetch|network|failed to/i.test(m)) return 'Couldn’t reach Pizzico. Check your connection and try again.';
   return m||'Something went wrong. Try again.';
@@ -1112,15 +1105,9 @@ function viewSignIn(){
   const a=S.auth, head=welcomeHead();
   if(!S.ready) return head+'<div class="muted" style="text-align:center">Loading…</div>';
   const err=a.err?`<div class="note err" role="alert">${esc(a.err)}</div>`:'';
-  if(a.step==='code') return `<button class="back" data-act="authback">${ic('chevL',16)}Back</button>${head}
-    <div class="muted" style="text-align:center;margin-bottom:12px">We sent a 6-digit code to ${esc(a.email)}. It can take a minute. Check your spam folder too.</div>
-    <div class="field"><label>6-digit code</label><input class="codein" data-in="auth_code" inputmode="numeric" autocomplete="one-time-code" maxlength="6" value="${esc(a.code)}" placeholder="123456"></div>${err}
-    <button class="btn" data-act="authverify" ${a.busy?'disabled':''}>${a.busy?'Checking…':'Sign in'}</button>
-    <button class="back tlink" style="display:block;margin:12px auto 0" data-act="authsend">Send a new code</button>`;
-  return head+`<div class="field"><label>Your name</label><input data-in="auth_name" value="${esc(a.name)}" placeholder="What should we call you?" autocomplete="given-name"></div>
-    <div class="field"><label>Email</label><input data-in="auth_email" type="email" inputmode="email" autocomplete="email" autocapitalize="off" value="${esc(a.email)}" placeholder="you@example.com"></div>${err}
-    <button class="btn" data-act="authsend" ${a.busy?'disabled':''}>${a.busy?'Sending…':'Email me a code'}</button>
-    <div class="muted" style="text-align:center;margin-top:12px">No password. We email you a code when you sign in on a new phone.</div>`;
+  return head+`<div class="field"><label>Your name</label><input data-in="auth_name" value="${esc(a.name)}" placeholder="What should we call you?" autocomplete="given-name"></div>${err}
+    <button class="btn" data-act="authgo" ${a.busy?'disabled':''}>${a.busy?'Starting…':'Get started'}</button>
+    <div class="muted" style="text-align:center;margin-top:12px">No email or password. You stay signed in on this phone. On iPhone, add Pizzico to your Home Screen first (Share, then Add to Home Screen) and open it from there.</div>`;
 }
 
 boot();

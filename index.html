@@ -62,7 +62,6 @@ input,textarea,select{font:inherit;color:inherit}
 .alt-way{margin-top:34px;padding-top:20px;border-top:1px solid var(--line);text-align:center}
 .alt-way .muted{font-size:14px;margin-bottom:8px}
 .btn.alt{background:var(--card);color:var(--accent);border:1.5px solid color-mix(in srgb,var(--accent) 45%,transparent)}
-.quiet.proto{font-size:12px;text-decoration:none}
 .opt{display:flex;align-items:center;gap:12px;width:100%;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:10px;text-align:left;color:var(--ink)}
 .opt>.i{color:var(--accent)}
 .opt b{flex:1;font-size:15px;font-weight:600}
@@ -243,49 +242,15 @@ const SLOTS = ['Breakfast','Lunch','Dinner'];
 const REACTS = ['😍','👍','🔥','📅'];
 const TODAY_IDX = 6; // Sunday
 
-// ---------- sample data ----------
+// ---------- recipe helper ----------
 let nid = 100;
-const R = (o)=>Object.assign({id:++nid,favs:{},cooked:[],notes:{},comments:[],reacts:{},custom:[],diets:[],meals:[],mains:[],cuisine:'',added:'stef',source:'Instagram'},o);
-const I = (s)=>s.split('|').map(x=>{const [q,n]=x.split('~');return {q:q.trim(),name:n.trim()}});
-function seedRecipes(creator){ const list = [
- R({id:1,title:'Crispy Chilli Chicken Thighs',emoji:'🍗',color:'#fbe0cc',time:35,effort:'Easy',serves:2,meals:['Dinner'],mains:['Chicken'],cuisine:'Asian',custom:['Date night'],
-   ingredients:I('500g~chicken thighs|2 tbsp~soy sauce|2 tbsp~honey|1 tbsp~chilli flakes|3 cloves~garlic|1 tbsp~cornflour|2~spring onions|1 tbsp~sesame seeds'),
-   method:['Pat the thighs dry and toss in cornflour and a pinch of salt.','Roast at 220°C for 25 minutes, skin side up, until deep golden.','Simmer soy, honey, garlic and chilli for 3 minutes until sticky.','Toss the chicken in the glaze and finish with spring onion and sesame.'],
-   favs:{stef:true,partner:true},cooked:[{who:'stef',stars:5,note:'Double the glaze next time',date:'2 Nov'},{who:'partner',stars:4,note:'Great, a bit hot for me',date:'2 Nov'}],
-   comments:[{who:'partner',text:'Make this when your mum visits?',reacts:{'😍':['stef']}}],reacts:{'🔥':['stef','partner']}}),
- R({id:2,title:'One-pan Creamy Tuscan Gnocchi',emoji:'🥘',color:'#f6ead0',time:25,effort:'Easy',serves:2,meals:['Dinner'],mains:['Pasta'],diets:['Vegetarian'],cuisine:'Italian',custom:['Midweek rescue'],added:'partner',
-   ingredients:I('400g~gnocchi|150g~sun-dried tomatoes|200g~baby spinach|150ml~double cream|3 cloves~garlic|40g~parmesan|1 tbsp~olive oil'),
-   method:['Fry the gnocchi in olive oil until golden, then set aside.','Soften garlic and sun-dried tomatoes for 2 minutes.','Add cream and parmesan and simmer until silky.','Fold through spinach and gnocchi until wilted.'],
-   favs:{stef:false,partner:true},cooked:[{who:'partner',stars:5,note:'On repeat',date:'28 Oct'}]}),
- R({id:3,title:'Overnight Oats, Three Ways',emoji:'🥣',color:'#efe6f7',time:5,effort:'Easy',serves:1,meals:['Breakfast'],mains:['Oats & grains'],diets:['Vegetarian'],cuisine:'British',custom:['Meal prep'],
-   ingredients:I('50g~rolled oats|120ml~milk|2 tbsp~greek yoghurt|1 tbsp~chia seeds|1 tbsp~maple syrup|1~banana|1 tbsp~peanut butter'),
-   method:['Mix oats, milk, yoghurt, chia and syrup in a jar.','Chill overnight.','Top: banana and peanut butter, or berries, or cocoa and hazelnuts.'],favs:{stef:true,partner:false}}),
- R({id:4,title:'Slow-cooked Beef Ragu',emoji:'🍝',color:'#f3d9d3',time:180,effort:'Medium',serves:4,meals:['Dinner'],mains:['Beef','Pasta'],cuisine:'Italian',custom:['Sunday'],source:'BBC Good Food',
-   ingredients:I('800g~beef shin|1~onion|2~carrots|2 tbsp~tomato purée|400g~chopped tomatoes|200ml~red wine|300g~pappardelle|2 sprigs~rosemary'),
-   method:['Brown the beef in batches, then soften onion and carrot.','Add purée, wine, tomatoes and rosemary and bring to a simmer.','Cook at 150°C for 2.5 hours until the beef shreds.','Toss through pappardelle with a splash of pasta water.'],
-   comments:[{who:'stef',text:'Freezes brilliantly. Make a double batch.',reacts:{'👍':['partner']}}],cooked:[{who:'stef',stars:4,note:'',date:'18 Oct'}]}),
- R({id:5,title:'Shakshuka',emoji:'🍳',color:'#fbdcd0',time:30,effort:'Easy',serves:2,meals:['Breakfast','Lunch'],mains:['Eggs'],diets:['Vegetarian'],cuisine:'Middle Eastern',custom:['Brunch'],
-   ingredients:I('4~eggs|400g~chopped tomatoes|1~red pepper|1~onion|2 tsp~cumin|1 tsp~paprika|2 cloves~garlic|50g~feta'),
-   method:['Soften onion and pepper with the spices.','Add garlic and tomatoes, simmer for 10 minutes.','Make wells, crack in the eggs, cover and cook 6 minutes.','Crumble over feta and serve with bread.'],favs:{stef:true,partner:true}}),
- R({id:6,title:'Lemon Garlic Prawn Linguine',emoji:'🍤',color:'#fbe9c8',time:20,effort:'Easy',serves:2,meals:['Dinner'],mains:['Seafood','Pasta'],cuisine:'Italian',custom:['Quick win'],added:'partner',
-   ingredients:I('200g~linguine|250g~king prawns|3 cloves~garlic|1~lemon|1 tsp~chilli flakes|small bunch~parsley|2 tbsp~olive oil'),
-   method:['Boil the linguine until al dente, reserving a cup of water.','Sizzle garlic and chilli in oil, add prawns for 2 minutes.','Toss in pasta, lemon zest and juice, and a splash of water.','Finish with parsley.']}),
- R({id:7,title:'Sticky Miso Aubergine',emoji:'🍆',color:'#e8def0',time:40,effort:'Medium',serves:2,meals:['Dinner','Side'],mains:['Veg'],diets:['Vegan','Dairy-free'],cuisine:'Japanese',
-   ingredients:I('2~aubergines|3 tbsp~white miso|2 tbsp~mirin|1 tbsp~maple syrup|1 tbsp~rice vinegar|2 tbsp~sesame oil|1 tbsp~sesame seeds'),
-   method:['Halve the aubergines and score the flesh.','Roast cut side up for 25 minutes.','Mix miso, mirin, syrup and vinegar, brush on, and grill for 5 minutes.']}),
- R({id:8,title:'Brown Butter Banana Bread',emoji:'🍌',color:'#f8ecc4',time:70,effort:'Easy',serves:8,meals:['Dessert','Snack'],mains:['Veg'],diets:['Vegetarian'],cuisine:'British',custom:['Bake'],source:'Own recipe',
-   ingredients:I('3~ripe bananas|100g~butter|120g~sugar|2~eggs|220g~flour|1 tsp~baking powder|1 tsp~vanilla'),
-   method:['Brown the butter and cool slightly.','Mash bananas and whisk with butter, sugar, eggs and vanilla.','Fold in flour and baking powder.','Bake at 170°C for 55 minutes.'],favs:{stef:false,partner:true}})
-];
-  const ago=n=>{const x=new Date(Date.now()-n*864e5); return x.getDate()+' '+['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][x.getMonth()];};
-  const demo={4:[[5,'More feta next time',2],[4,'',30]],5:[[4,'Less chilli, more garlic',4]],3:[[4,'',9]]}; // prototype-only sample journal
-  return list.map((r,i)=>{ r.favs={}; r.cooked=(demo[i]||[]).map(([stars,note,d])=>({who:creator,stars,note,date:ago(d)})); r.comments=[]; r.reacts={}; r.notes={}; r.added=creator; return r; }); }
+const R = (o)=>Object.assign({id:++nid,favs:{},ratings:{},note:'',comments:[],reacts:{},custom:[],diets:[],meals:[],mains:[],cuisine:'',added:'stef',source:'Instagram'},o);
 let recipes = [];
 let plan = {};
 
 // ---------- state ----------
 const S = { me:null, ready:false, email:'', auth:{step:'email',email:'',name:'',code:'',err:'',busy:false}, busy:false, leaving:null, tab:'library', view:null, q:'', f:{meals:[],mains:[],diets:[],cuisines:[],times:[],custom:[]}, favOnly:false, sheet:null, toast:null,
-  add:{step:'link', src:'ig', pasteOpen:false, web:'', mode:'paste', text:'', url:'', draft:null, shareUrl:'', shots:[], showOrig:false}, cant:[], cantInput:'', quick:null, quickEdit:false, quickInput:'', checked:{}, stepsDone:{}, cook:null, rateDraft:{stars:0,note:''}, planPick:null, commentDraft:'', units:'metric', serves:{}, shop:[], shopInput:'', books:[], notice:{}, rmTarget:null, mode:'auto', font:'jakarta', toastUndo:false, lastDel:null, day:0, dev:{}, onb:{} };
+  add:{step:'link', src:'ig', pasteOpen:false, web:'', mode:'paste', text:'', url:'', draft:null, shareUrl:'', shots:[], showOrig:false}, cant:[], cantInput:'', quick:null, quickEdit:false, quickInput:'', checked:{}, stepsDone:{}, cook:null, planPick:null, commentDraft:'', units:'metric', serves:{}, shop:[], shopInput:'', books:[], notice:{}, rmTarget:null, mode:'auto', font:'jakarta', toastUndo:false, lastDel:null, day:0, dev:{}, onb:{} };
 
 // ---------- helpers ----------
 const $ = s=>document.querySelector(s);
@@ -328,7 +293,8 @@ const ICONS={
 const ic=(n,s=18,cls='')=>`<svg class="i ${cls}" width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[n]}</svg>`;
 const fmtTime = m=> m>=60 ? (Math.floor(m/60)+'h'+(m%60?(' '+m%60+'m'):'')) : m+' min';
 const timeBucket = m=> m<=30?'Quick (≤30 min)': m<=60?'Weeknight (≤60)':'Slow (60+)';
-function avgStars(r){ if(!r.cooked.length) return null; return r.cooked.reduce((a,c)=>a+c.stars,0)/r.cooked.length; }
+function ratingList(r){ return Object.entries(r.ratings||{}).filter(([k,v])=>v>0).map(([k,v])=>({id:k,stars:v})); }
+function avgStars(r){ const l=ratingList(r); return l.length? l.reduce((a,x)=>a+x.stars,0)/l.length : null; }
 function toast(t,undo=false,ms=1800){ S.toast=t; S.toastUndo=undo; render(); setTimeout(()=>{ if(S.toast===t){S.toast=null;S.toastUndo=false;render();} },ms); }
 function allTags(r){ return [...r.meals,...r.mains,...r.diets,...(r.cuisine?[r.cuisine]:[]),...r.custom]; }
 function allCustom(){ return [...new Set(recipes.flatMap(r=>r.custom))]; }
@@ -438,10 +404,10 @@ function render(){
   $('#bookbtn').style.display=member?'':'none'; $('#bookbtn').innerHTML=ic('settings',22);
   const tabs=[['library','bookOpen','Library'],['cant','fridge','Fridge'],['add','plus','Add'],['plan','calendar','Plan'],['shop','bag','List']];
   const shopLeft=S.shop.filter(i=>!i.done).length;
-  $('#nav').innerHTML = !member ? '' : tabs.map(([k,i,l])=>`<button class="${k==='add'?'add':''} ${(S.tab===k||(k==='library'&&S.tab==='journal'))&&!S.view?'on':''}" data-act="tab" data-v="${k}" style="position:relative" ${k==='add'?'aria-label="Add a recipe"':''} ${(S.tab===k||(k==='library'&&S.tab==='journal'))&&!S.view?'aria-current="page"':''}><span class="ic">${ic(i,k==='add'?26:23,'')}</span>${k==='add'?'':l}${k==='shop'&&shopLeft?`<i class="badge">${shopLeft}</i>`:''}</button>`).join('');
+  $('#nav').innerHTML = !member ? '' : tabs.map(([k,i,l])=>`<button class="${k==='add'?'add':''} ${S.tab===k&&!S.view?'on':''}" data-act="tab" data-v="${k}" style="position:relative" ${k==='add'?'aria-label="Add a recipe"':''} ${S.tab===k&&!S.view?'aria-current="page"':''}><span class="ic">${ic(i,k==='add'?26:23,'')}</span>${k==='add'?'':l}${k==='shop'&&shopLeft?`<i class="badge">${shopLeft}</i>`:''}</button>`).join('');
   const main=$('#main'); const scroll=main.scrollTop;
   const nb=S.notice[S.me]?`<div class="note" style="display:flex;gap:8px;justify-content:space-between"><span>${esc(S.notice[S.me])}</span><button data-act="dismissnotice" aria-label="Dismiss" style="padding:6px;margin:-6px">${ic('x',16)}</button></div>`:'';
-  main.innerHTML = nb + (!member ? viewOnboard() : S.view ? viewDetail(byId(S.view)) : ({library:viewLibrary,cant:viewCant,add:viewAdd,plan:viewPlan,journal:viewJournal,shop:viewShop,trash:viewTrash})[S.tab]());
+  main.innerHTML = nb + (!member ? viewOnboard() : S.view ? viewDetail(byId(S.view)) : ({library:viewLibrary,cant:viewCant,add:viewAdd,plan:viewPlan,shop:viewShop,trash:viewTrash})[S.tab]());
   main.scrollTop = scroll;
   if(S.scrollTo){ const w=S.scrollTo; S.scrollTo=null; main.scrollTop=0; if(w==='met'){ const t=main.querySelector('[data-in=d_met]'); if(t){ t.scrollIntoView({block:'center'}); try{t.focus({preventScroll:true});}catch(e){} } } }
   $('#overlay').innerHTML = (member&&S.sheet?viewSheet():'') + (S.cook?viewCook():'') + (S.toast?`<div class="toast" role="status" aria-live="polite">${esc(S.toast)}${S.toastUndo?` <button data-act="undodel" style="margin:-8px -6px -8px 6px;padding:8px 6px;color:var(--toast-link);font-weight:700">Undo</button>`:''}</div>`:'');
@@ -466,15 +432,13 @@ function card(r){
     <div class="hearts">${hs}</div>
     <div class="body"><h3>${esc(r.title)}</h3>
     <div class="meta"><span>${ic('clock',13)} ${fmtTime(r.time)}</span><span>${esc(r.effort)}</span></div>
-    <div class="rate">${av?`<span class="st">${stars(av)}</span> · ${timesTxt(r.cooked.length)}`:'Not cooked yet'}${r.needsMethod?' · Needs method':''}</div></div></button>`;
+    <div class="rate">${av?`<span class="st">${stars(av)}</span> ${av.toFixed(1)}`:'Not rated yet'}${r.needsMethod?' · Needs method':''}</div></div></button>`;
 }
 
-function titleTabs(){ const j=S.tab==='journal'; return `<div class="ttabs"><button class="${j?'':'on'}" data-act="tab" data-v="library">Recipes</button><button class="${j?'on':''}" data-act="tab" data-v="journal">Journal</button></div>`; }
 function viewLibrary(){
   const list=filtered(), n=filterCount();
   const quick = OPTS.meals.slice(0,4);
-  return `${titleTabs()}
-  <div class="search">${ic('search',18)}<input id="q" placeholder="Search recipes, tags or ingredients" value="${esc(S.q)}" data-in="q"></div>
+  return `<div class="search">${ic('search',18)}<input id="q" placeholder="Search recipes, tags or ingredients" value="${esc(S.q)}" data-in="q"></div>
   <div class="chips">
     <button class="chip ${n?'acc':''}" data-act="sheet" data-v="filters">${ic('sliders',15)}Filters${n?' · '+n:''}</button>
     <button class="chip ${S.favOnly?'on':''}" data-act="favonly">${ic('heart',15)}Favourites</button>
@@ -488,7 +452,6 @@ function viewLibrary(){
 
 function viewDetail(r){
   const me=S.me;
-  const myNote=(r.notes[me]=r.notes[me]||{text:'',priv:false});
   const cur=S.serves[r.id]||r.serves, f=cur/r.serves;
   const done=S.stepsDone[r.id]||{}, chk=S.checked[r.id]||{};
   const rxRow=(obj,act,extra='')=>REACTS.map(e=>{const who=(obj[e]||[]); return `<button class="${who.includes(me)?'mine':''}" data-act="${act}" data-e="${e}" ${extra}>${e}${who.length?' '+who.length:''}</button>`}).join('');
@@ -506,9 +469,14 @@ function viewDetail(r){
   </div>
   <div style="margin-top:8px">${[...r.meals.map(t=>`<span class="tag">${t}</span>`),...r.mains.map(t=>`<span class="tag alt">${t}</span>`),...r.diets.map(t=>`<span class="tag alt">${t}</span>`),r.cuisine?`<span class="tag cu">${r.cuisine}</span>`:'',...r.custom.map(t=>`<span class="tag cs">#${esc(t)}</span>`)].join('')}</div>
   <div class="stats"><div class="stat"><b>${fmtTime(r.time)}</b><span>Time</span></div><div class="stat"><b>${r.effort}</b><span>Effort</span></div><div class="stat"><b>${cur}</b><span>Serves</span></div><div class="stat"><b>${avgStars(r)?avgStars(r).toFixed(1)+' ★':'–'}</b><span>Rating</span></div></div>
-  <div class="row" style="gap:8px">
+
+  <h2 style="margin:14px 0 4px">Ratings</h2>
+  ${[...new Set([me,...((S.book&&S.book.members)||[])])].map(k=>{ const n=(r.ratings||{})[k]||0, mine=k===me;
+    return `<div class="row between" style="padding:2px 0"><b style="color:var(--${USERS[k].cls});font-weight:600">${esc(USERS[k].name)}${mine?' (you)':''}</b>${mine
+      ? `<div class="stars" role="group" aria-label="Your rating">${[1,2,3,4,5].map(i=>`<button class="${n>=i?'on':''}" data-act="rate" data-v="${i}" aria-label="${i} star${i>1?'s':''}" aria-pressed="${n===i}">${n>=i?'★':'☆'}</button>`).join('')}</div>`
+      : (n?`<span style="color:var(--gold);font-size:22px;letter-spacing:1px">${stars(n)}</span>`:`<span class="muted">Not rated yet</span>`)}</div>`; }).join('')}
+  <div class="row" style="gap:8px;margin-top:10px">
     ${r.method.length&&!r.needsMethod?`<button class="btn" data-act="cookmode" data-v="${r.id}">${ic('chef',18)}Cook mode</button>`:''}
-    <button class="btn ghost" data-act="sheet" data-v="rate">${ic('checkCircle',18)}Cooked it</button>
     <button class="btn ghost" data-act="sheet" data-v="planadd" aria-label="Add to plan" style="width:auto;padding:12px 14px">${ic('calendar',18)}</button>
   </div>
   <div class="row" style="gap:8px;margin-top:8px">
@@ -527,9 +495,7 @@ function viewDetail(r){
   <h2>Reactions</h2>
   <div class="rx" style="margin-top:0">${rxRow(r.reacts,'rxr')}</div>
   <h2>Notes</h2>
-  <div class="field"><label>My notes (${USERS[me].name})</label><textarea data-in="note" placeholder="Swaps, tweaks, tips…">${esc(myNote.text)}</textarea><div class="muted" style="font-size:13px;margin-top:4px">Saves as you type.</div>
-    <label class="check" style="text-transform:none;font-weight:500;margin-top:8px;letter-spacing:0"><input type="checkbox" data-act="priv" ${myNote.priv?'checked':''}> Keep private (only I can see this)</label></div>
-  ${Object.keys(r.notes).filter(k=>k!==me&&r.notes[k].text).map(k=>r.notes[k].priv?`<div class="muted">${ic('lock',13)} ${esc(USERS[k].name)} has a private note.</div>`:`<div class="bubble ${USERS[k].cls}"><div class="h">${esc(USERS[k].name)}'s notes</div>${esc(r.notes[k].text)}</div>`).join('')}
+  <div class="field"><label>Notes for everyone in the book</label><textarea data-in="note" placeholder="Tweaks, swaps, tips…">${esc(r.note||'')}</textarea><div class="muted" style="font-size:13px;margin-top:4px">Everyone in the book can see and edit this. Saves as you type.</div></div>
   <h2>Comments</h2>
   ${r.comments.map((c,ix)=>`<div class="bubble ${USERS[c.who].cls}"><div class="h">${USERS[c.who].name}</div>${esc(c.text)}<div class="rx">${REACTS.map(e=>{const w=(c.reacts[e]||[]);return `<button class="${w.includes(me)?'mine':''}" data-act="rxc" data-c="${ix}" data-e="${e}">${e}${w.length?' '+w.length:''}</button>`}).join('')}</div></div>`).join('') || '<div class="muted">No comments yet.</div>'}
   <div class="row" style="margin-top:8px"><input id="cmt" class="search" style="flex:1;margin:0" placeholder="Add a comment…" data-in="cmt" value="${esc(S.commentDraft)}"><button class="btn sm" data-act="postc">Post</button></div>
@@ -569,32 +535,11 @@ function viewPlan(){
 }
 
 function stars(n){ const k=Math.round(n); return `<span role="img" aria-label="${k} out of 5 stars">${'★'.repeat(k)+'☆'.repeat(5-k)}</span>`; }
-function timesTxt(n){ return n===1?'cooked once':n===2?'cooked twice':'cooked '+n+' times'; }
-const MON=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-const MONTHS=['January','February','March','April','May','June','July','August','September','October','November','December'];
-function cookDate(c){ const now=new Date(); now.setHours(0,0,0,0); if(c.at){ const d=new Date(c.at); d.setHours(0,0,0,0); return d; } if(!c.date||c.date==='Today') return now;
-  const m=String(c.date).match(/(\d+)\s+([A-Za-z]{3})/); if(!m) return now;
-  const d=new Date(now.getFullYear(),MON.indexOf(m[2]),+m[1]); if(d>now) d.setFullYear(d.getFullYear()-1); return d; }
-function viewJournal(){
-  const now=new Date(); now.setHours(0,0,0,0);
-  const logs=recipes.flatMap(r=>r.cooked.map(c=>({r,c,d:cookDate(c)}))).sort((a,b)=>b.d-a.d);
-  const forgot=recipes.filter(r=>Object.values(r.favs).some(Boolean)).filter(r=>!r.cooked.length);
-  const group=d=>{const days=Math.round((now-d)/864e5); return days<7?'This week':days<14?'Last week':MONTHS[d.getMonth()]+(d.getFullYear()!==now.getFullYear()?' '+d.getFullYear():'');};
-  const when=d=>{const days=Math.round((now-d)/864e5); return days===0?'Today':days===1?'Yesterday':days<7?d.toLocaleDateString('en-GB',{weekday:'long'}):d.getDate()+' '+MON[d.getMonth()];};
-  let last='', html='';
-  logs.forEach(({r,c,d})=>{const g=group(d); if(g!==last){html+=`<div class="jgroup">${g}</div>`; last=g;}
-    html+=`<button class="jent" data-act="open" data-v="${r.id}"><div class="t" style="${tileStyle(r)}">${tileText(r)}</div><div style="flex:1"><div><span class="n">${esc(r.title)}</span><span class="st">${stars(c.stars)}</span></div><div class="w"><b style="color:var(--${USERS[c.who].cls});font-weight:600">${esc(USERS[c.who].name||'Someone')}</b> · ${when(d)}</div>${c.note?`<div class="q">${esc(c.note)}</div>`:''}</div></button>`;});
-  return `${titleTabs()}
-  ${logs.length?html:`<div class="empty-state">${ic('book',36,'es-ic')}Nothing cooked yet.<br>Open a recipe and tap ‘Cooked it’ to start the journal.</div>`}
-  ${forgot.length?`<h2>Favourited but not cooked yet</h2><div class="grid">${forgot.map(card).join('')}</div>`:''}`;
-}
-
 function viewTrash(){
   const items=trash.filter(t=>S.day-t.day<7);
   return `<button class="back" data-act="tab" data-v="library">${ic('chevL',16)}Recipe book</button><h2 style="margin-top:0">Recently deleted</h2>
   <div class="muted" style="margin-bottom:10px">Deleted recipes are kept here for 7 days just in case you want to add them back in.</div>
-  ${items.length?items.map(t=>{const d=S.day-t.day; return `<div class="match" style="cursor:default"><div class="t" style="${tileStyle(t.r)}">${tileText(t.r)}</div><div style="flex:1"><b style="font-size:14px">${esc(t.r.title)}</b><div class="muted">Deleted by ${esc(USERS[t.by].name)} · ${d===0?'today':d+' day'+(d>1?'s':'')+' ago'} · ${7-d} day${7-d>1?'s':''} left</div></div><button class="btn sm" data-act="restore" data-id="${t.r.id}">Restore</button></div>`}).join(''):'<div class="empty-state">Nothing deleted recently.</div>'}
-  <div class="note" style="margin-top:16px">Prototype only: <button class="btn ghost sm" data-act="skipday">${ic('ffwd',14)}Jump ahead 1 day</button> to watch recipes drop off after 7 days (day ${S.day}).</div>`;
+  ${items.length?items.map(t=>{const d=S.day-t.day; return `<div class="match" style="cursor:default"><div class="t" style="${tileStyle(t.r)}">${tileText(t.r)}</div><div style="flex:1"><b style="font-size:14px">${esc(t.r.title)}</b><div class="muted">Deleted by ${esc(USERS[t.by].name)} · ${d===0?'today':d+' day'+(d>1?'s':'')+' ago'} · ${7-d} day${7-d>1?'s':''} left</div></div><button class="btn sm" data-act="restore" data-id="${t.r.id}">Restore</button></div>`}).join(''):'<div class="empty-state">Nothing deleted recently.</div>'}`;
 }
 
 function welcomeHead(){ return `<div style="text-align:center;margin:14px 0 18px"><svg class='welcome-icon' aria-hidden='true' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'><defs><filter id='pzglow' x='-30%' y='-30%' width='160%' height='160%'><feGaussianBlur stdDeviation='2.2' result='b'/><feMerge><feMergeNode in='b'/><feMergeNode in='b'/><feMergeNode in='SourceGraphic'/></feMerge></filter></defs><rect width='100' height='100' rx='22' fill='#1c1519'/><g filter='url(#pzglow)'><path d='M40.76 90.92 L37.93 90.91 L36.23 90.41 L34.09 90.11 L31.53 89.53 L30.33 89.04 L29.22 88.76 L25.97 87.40 L24.60 86.66 L22.60 85.36 L21.35 84.44 L19.48 82.79 L18.55 81.51 L18.43 80.91 L18.53 80.22 L19.02 79.28 L23.66 72.95 L24.53 71.33 L24.85 69.62 L24.80 68.59 L24.97 67.39 L25.01 65.43 L25.23 64.32 L25.37 60.81 L26.10 57.39 L27.54 53.45 L28.28 51.98 L30.16 48.84 L31.69 46.70 L34.43 43.45 L40.55 37.55 L43.67 33.84 L44.98 31.90 L46.30 29.51 L47.10 27.45 L48.09 24.03 L48.77 22.58 L49.71 21.21 L50.43 20.60 L51.88 20.02 L52.91 19.93 L54.19 20.17 L54.62 20.06 L54.85 19.67 L55.03 17.96 L55.47 16.85 L56.16 15.90 L57.06 15.22 L58.21 14.93 L60.09 14.94 L61.59 13.77 L62.49 13.60 L63.26 13.70 L64.80 14.61 L70.82 19.76 L72.89 22.32 L79.25 29.67 L80.69 31.56 L81.27 32.59 L81.75 34.64 L81.77 35.58 L81.53 37.12 L81.24 44.90 L80.90 48.07 L80.63 52.26 L80.17 55.25 L79.89 58.50 L79.16 60.28 L77.98 62.01 L75.66 64.06 L72.92 66.11 L67.53 69.57 L58.64 74.72 L54.28 77.39 L51.03 79.54 L48.19 81.76 L46.07 83.81 L44.04 86.64 L42.28 89.38 L41.02 90.54 L40.76 90.92Z M57.67 49.61 L58.00 49.26 L58.08 48.66 L58.07 44.30 L57.77 41.31 L57.37 39.86 L56.67 38.49 L55.30 36.07 L55.05 35.84 L54.79 35.81 L54.29 36.26 L53.25 38.28 L50.75 42.51 L50.49 43.79 L50.69 45.67 L51.05 46.70 L51.54 47.16 L52.57 47.68 L53.91 48.07 L57.18 49.56 L57.67 49.61Z' fill='none' stroke='#ff7eb6' stroke-width='2.2' stroke-linejoin='round'/><path d='M77.28 50.67 L77.03 50.67 L76.86 50.55 L76.70 50.12 L76.63 48.32 L76.23 46.18 L75.92 43.19 L75.40 40.97 L75.15 38.91 L74.79 37.80 L74.54 35.84 L73.87 34.04 L72.32 31.88 L63.86 22.24 L60.87 16.51 L60.81 16.08 L61.12 15.71 L61.55 15.67 L61.97 15.96 L62.79 17.02 L63.42 18.13 L63.77 18.98 L65.12 21.12 L67.19 23.61 L70.97 27.62 L72.03 28.91 L74.55 31.64 L75.06 32.25 L75.83 33.53 L76.52 36.01 L76.83 38.49 L77.08 39.26 L77.23 40.54 L77.33 43.53 L77.58 45.33 L77.53 47.30 L77.75 48.49 L77.72 50.12 L77.55 50.46 L77.28 50.67Z M70.87 54.08 L70.61 54.07 L70.42 53.88 L69.98 52.68 L69.70 51.32 L69.32 50.12 L69.04 48.41 L68.57 47.04 L68.37 45.76 L67.94 44.64 L67.69 43.45 L67.28 42.34 L67.02 41.22 L66.56 40.28 L66.33 39.43 L63.18 34.55 L62.87 33.87 L62.44 33.27 L62.18 32.67 L61.80 32.15 L61.47 31.39 L61.08 30.79 L59.76 27.88 L59.49 26.80 L59.03 25.91 L58.80 24.97 L58.11 23.61 L57.82 23.26 L57.01 22.70 L56.16 22.54 L55.47 22.55 L55.05 22.68 L53.64 23.61 L53.28 24.03 L52.90 24.80 L52.62 26.26 L52.73 28.48 L53.45 31.47 L54.03 32.50 L54.25 33.27 L54.56 33.87 L54.60 34.21 L54.40 34.55 L52.91 36.09 L51.84 38.23 L50.43 40.62 L49.66 41.82 L49.49 41.94 L49.33 41.82 L49.30 41.48 L49.46 40.71 L50.04 39.51 L50.51 38.87 L51.21 37.55 L51.82 36.01 L51.81 35.07 L51.35 33.61 L51.20 32.16 L50.73 29.59 L50.73 26.94 L50.83 26.26 L51.40 24.03 L52.27 22.32 L52.14 21.99 L51.61 21.72 L51.71 21.55 L52.74 21.36 L53.51 21.46 L54.11 21.65 L54.53 21.63 L54.82 21.47 L56.16 20.14 L56.41 20.00 L56.57 20.18 L56.93 21.21 L58.72 21.99 L59.34 22.58 L59.92 23.43 L60.30 24.55 L60.73 25.32 L60.99 26.17 L61.40 26.86 L61.67 27.62 L62.07 28.22 L62.36 28.99 L62.75 29.59 L63.04 30.36 L65.13 33.87 L67.58 37.38 L68.30 38.55 L68.90 39.79 L69.67 43.11 L69.96 45.24 L70.30 46.36 L70.50 48.92 L70.89 50.97 L71.14 53.28 L71.08 53.80 L70.87 54.08Z M36.14 68.09 L35.97 68.15 L35.78 68.08 L35.66 67.82 L35.68 67.57 L36.49 65.17 L37.18 63.97 L37.77 63.05 L38.76 61.84 L39.54 61.07 L41.28 59.70 L43.04 58.67 L43.71 58.16 L46.32 56.91 L47.18 56.64 L47.95 56.17 L49.06 55.85 L49.91 55.47 L51.10 55.16 L51.97 54.78 L53.25 54.53 L54.45 54.09 L56.93 53.54 L57.43 53.28 L57.62 52.94 L57.47 52.43 L57.10 52.08 L54.79 50.92 L53.34 50.40 L52.65 50.02 L51.80 49.74 L51.11 49.39 L49.91 49.13 L48.89 48.65 L45.89 47.89 L43.93 47.63 L42.39 47.19 L40.08 47.12 L39.72 46.87 L39.71 46.61 L39.83 46.44 L40.25 46.26 L41.96 46.07 L43.84 46.02 L45.64 46.30 L47.09 46.33 L49.23 46.59 L49.57 46.78 L50.99 48.24 L51.43 48.58 L52.48 49.12 L53.93 49.52 L57.44 51.14 L57.87 51.06 L59.07 49.93 L59.24 49.84 L59.41 49.89 L59.51 50.12 L59.73 52.17 L60.12 54.22 L60.43 54.67 L61.97 55.76 L62.05 56.19 L61.80 56.54 L61.20 56.74 L60.18 56.67 L58.21 55.51 L57.44 55.42 L55.82 55.90 L54.19 56.21 L51.97 56.84 L51.03 57.24 L49.83 57.50 L48.97 57.95 L47.95 58.21 L45.81 59.23 L44.95 59.53 L42.64 60.90 L40.68 62.33 L39.82 63.06 L38.51 64.40 L37.77 65.34 L36.14 68.09Z M40.59 89.33 L40.42 89.32 L40.35 89.12 L40.54 88.35 L40.98 87.66 L41.31 86.81 L42.65 84.67 L45.36 80.99 L46.62 79.62 L48.18 78.26 L50.26 76.80 L50.94 76.50 L51.54 76.11 L52.31 75.82 L54.11 74.74 L54.88 74.45 L55.47 74.02 L56.18 73.72 L57.95 72.66 L58.64 72.38 L61.63 70.63 L62.32 70.35 L62.84 69.96 L68.05 66.95 L72.32 64.14 L74.29 62.71 L76.60 60.74 L77.91 59.10 L78.21 58.07 L78.39 57.90 L78.45 58.41 L78.07 59.10 L77.84 60.04 L77.01 61.41 L75.66 62.62 L74.12 63.70 L72.92 64.68 L67.53 68.14 L66.85 68.46 L60.52 72.25 L58.64 73.25 L54.23 75.95 L51.03 78.07 L48.20 80.29 L47.39 80.99 L44.61 83.79 L42.56 86.67 L41.44 88.52 L40.59 89.33Z' fill='#ff7eb6' fill-rule='evenodd'/></g></svg><h2 style="margin:10px 0 2px">Welcome to Pizzico</h2><div class="muted">There's no such thing as too many cooks</div></div>`; }
@@ -639,8 +584,7 @@ function viewAdd(){
   <div class="pastebox"><input data-in="addurl" inputmode="url" autocomplete="off" autocapitalize="off" placeholder="instagram.com/reel/…" value="${esc(a.url)}"><button data-act="pasteurl">${ic('clipboard',16)}Paste</button></div>
   <button class="btn" data-act="addnext">Next</button>
   <div class="addfoot alt-way"><div class="muted">Not from Instagram?</div>
-  <button class="btn alt" data-act="addstep" data-v="other">Add from a website or screenshot</button></div>
-  <button class="quiet proto" data-act="samplelink" style="margin-top:10px">Prototype: use a sample link</button>`;
+  <button class="btn alt" data-act="addstep" data-v="other">Add from a website or screenshot</button></div>`;
 }
 function viewAddCaption(){
   const a=S.add, n=a.shots.length, ig=a.src!=='shots';
@@ -653,8 +597,7 @@ function viewAddCaption(){
   ${a.pasteOpen?paste:tray}<input id="shotin" type="file" accept="image/*" multiple hidden>
   <button class="btn" data-act="go" ${a.busy?'disabled aria-busy="true"':''}>${a.busy?'<span class="spin" aria-hidden="true"></span>Reading the recipe…':`Read recipe${!a.pasteOpen&&n?` (${n})`:''}`}</button>${a.busy?`<div class="muted" role="status" style="text-align:center;margin-top:8px;font-size:13px">This takes about ${!a.pasteOpen&&n>1?'20':'10'} seconds.</div>`:''}
   ${ig?`<div class="addfoot" style="margin-top:14px"><button class="quiet" data-act="pastetoggle">${a.pasteOpen?'Use screenshots instead':'Copied the caption? Paste it instead'}</button>
-  <button class="quiet" data-act="linkonly">Skip for now and save just the link</button></div>`:''}
-  <button class="quiet proto" data-act="${a.pasteOpen?'sample':'shotsample'}">Prototype: ${a.pasteOpen?'use a sample caption':'use 3 sample screenshots'}</button>`;
+  <button class="quiet" data-act="linkonly">Skip for now and save just the link</button></div>`:''}`;
 }
 function viewAddOther(){
   const a=S.add;
@@ -671,9 +614,8 @@ function viewReview(){
   const igFlow=!d.editId&&S.add.src!=='shots'&&S.add.step==='caption';
   return `<button class="back" data-act="draftcancel">${ic('chevL',16)}${d.editId?'Cancel':'Back'}</button>${igFlow?addSteps(3):''}<h2 class="addh" style="margin-top:${igFlow?16:4}px">${d.editId?'Edit recipe':d.linkOnly?'Name it and save':'Check and save'}</h2>
   ${d.editId?'':`<div class="muted" style="margin:-2px 0 14px;font-size:14px">${d.linkOnly?'Just the link for now. Fill in the rest whenever you like.':d.shotCount?`Read from ${d.shotCount} screenshot${d.shotCount>1?'s':''}. Fix anything that looks off.`:d.readBy==='schema'?'Read from the recipe on that page. Fix anything that looks off.':'Fix anything that looks off.'}</div>`}
-  ${d.staged?`<div class="note">${ic('alert',15)} Prototype: this is the sample recipe, not yours. Real reading needs the reader set up.</div>`:''}
   ${d.cutOff?`<div class="note warn">${ic('alert',15)} <b>This looks cut off.</b>${d.cutWhy?` ${esc(d.cutWhy)}`:''}<div style="margin-top:8px"><button class="btn alt sm" data-act="addnextshot">Add the next screenshot</button></div></div>`:''}
-  ${d.flags&&d.flags.length?`<div class="note warn">${ic('alert',15)} <b>Check these</b><ul>${d.flags.map(f=>`<li>${esc(f)}</li>`).join('')}</ul>${d.staged?'<div class="muted" style="margin-top:6px">Prototype: this flag is staged to show how it will look.</div>':''}</div>`:''}
+  ${d.flags&&d.flags.length?`<div class="note warn">${ic('alert',15)} <b>Check these</b><ul>${d.flags.map(f=>`<li>${esc(f)}</li>`).join('')}</ul></div>`:''}
   ${d.methodMissing||d.needsMethod?`<div class="note warn">${ic('alert',15)} <b>No method in this post.</b> The method is probably in the video. Add the steps in the Method box below, or save now and come back to it.</div>`:''}
   ${d.fromPost?`<div class="note"><b>From the post</b> (kept here, not in the method)<div style="white-space:pre-line;margin-top:4px">${esc(fixTemp(d.fromPost))}</div></div>`:''}
   ${d.origSteps&&!d.methodMissing?(()=>{const have=d.metText.split('\n').filter(x=>x.trim()&&!/^tip:/i.test(x.trim())).length;return have===d.origSteps?`<div class="note" style="background:var(--card);border-color:var(--line)">${ic('check',14)} The caption has ${d.origSteps} steps and you have ${have}.</div>`:`<div class="note warn">${ic('alert',15)} The caption has ${d.origSteps} steps but you have ${have}. Check the method below.</div>`})():''}
@@ -697,10 +639,6 @@ function viewSheet(){
     inner=`<h3>Filters</h3>${g('Meal type','meals',OPTS.meals)}${g('Main ingredient','mains',OPTS.mains)}${g('Time','times',OPTS.times.map(t=>t[0]))}${g('Diet','diets',OPTS.diets)}${g('Cuisine','cuisines',OPTS.cuisines)}${g('Your labels','custom',allCustom())}
     <div class="row"><button class="btn ghost" data-act="clear">Reset</button><button class="btn" data-act="closesheet">Show ${filtered().length} recipes</button></div>`;
   }
-  if(s==='rate'){
-    inner=`<h3>You cooked it!</h3><div class="stars">${[1,2,3,4,5].map(n=>`<button class="${S.rateDraft.stars>=n?'on':''}" data-act="star" data-v="${n}" aria-label="${n} star${n>1?'s':''}" aria-pressed="${S.rateDraft.stars===n}">${S.rateDraft.stars>=n?'★':'☆'}</button>`).join('')}</div>
-    <div class="field" style="margin-top:8px"><label>Tweaks or thoughts</label><input data-in="ratenote" placeholder="Less chilli, more garlic…" value="${esc(S.rateDraft.note)}"></div><button class="btn" data-act="logcook">Save to journal</button>`;
-  }
   if(s==='planadd'){
     inner=`<h3>Add to plan</h3>${DAYS.map(d=>`<div class="plan-day"><b>${d}</b><div class="row" style="margin-top:6px;flex-wrap:wrap">${SLOTS.map(sl=>`<button class="chip" data-act="planset" data-k="${d}-${sl}" data-v="${r.id}">${sl}</button>`).join('')}</div></div>`).join('')}`;
   }
@@ -717,7 +655,7 @@ function viewSheet(){
     <button class="btn ghost" data-act="opentrash" style="margin-bottom:8px">${ic('trash',16)}Recently deleted (${trash.filter(t=>S.day-t.day<7).length})</button>
     <div class="field"><label>Appearance</label><div class="tabs">${[['auto','Auto'],['light','Light'],['dark','Dark']].map(([k,l])=>`<button class="${S.mode===k?'on':''}" data-act="mode" data-v="${k}">${l}</button>`).join('')}</div><div class="muted" style="margin-top:4px">Auto follows your phone's light or dark setting.</div></div>
     <div class="field"><label>Recipe reading</label><input data-in="readcode" type="password" autocomplete="off" autocapitalize="off" placeholder="Reading code" aria-label="Reading code" value="${esc(S.readCode)}">
-      <div class="muted" style="margin-top:4px">${!READER_URL?'Not set up yet. Recipes fill in with a sample for now.':S.readCode.trim()?'Saved on this phone.':'Type the reading code once on each phone.'}</div>
+      <div class="muted" style="margin-top:4px">${S.readCode.trim()?'Saved on this phone.':'Type the reading code once on each phone.'}</div>
       <div class="tabs" style="margin-top:8px" aria-label="Reading model">${[['sonnet','Sonnet'],['haiku','Haiku']].map(([k,l])=>`<button class="${S.readModel===k?'on':''}" data-act="readmodel" data-v="${k}">${l}</button>`).join('')}</div><div class="muted" style="margin-top:4px">For testing which Claude reads best. Haiku is cheaper.</div></div>
     <div class="field" style="margin-top:18px"><label>Share this recipe book</label>
       <div class="muted" style="font-size:13px;margin:-2px 0 8px">No such thing as too many cooks. Use this code to invite whoever you want to cook with.</div>
@@ -756,8 +694,7 @@ function viewCook(){
   <div class="row"><button class="btn ghost" style="flex:1" ${i?'':'disabled'} data-act="cookprev">${ic('chevL',16)}Back</button><button class="btn" style="flex:2" data-act="cooknext">${i===r.method.length-1?'Finish':'Next'+ic('chevR',16)}</button></div></div>`;
 }
 
-// ---------- parsing (simulated; real app will use Claude) ----------
-const SAMPLE = `Creamy garlic butter salmon 🐟 ready in 20 mins!\n\nYou need:\n2 salmon fillets\n3 cloves garlic\n50g butter\n100ml double cream\n1 lemon\nhandful spinach\nsalt and pepper\n\nMethod:\nSeason the salmon and sear skin side down for 4 mins.\nFlip, add butter and garlic and baste for 2 mins.\nPour in cream and lemon juice and simmer until thick.\nWilt in the spinach and serve.\n\n#salmon #quickdinner #easyrecipes`;
+// ---------- parsing (rough guesses for tags; the recipe itself is read by Claude) ----------
 function parseText(t){
   const lines=t.split('\n').map(l=>l.trim()).filter(Boolean).filter(l=>!l.startsWith('#'));
   const title=(lines[0]||'Untitled recipe').replace(/[^\p{L}\p{N}\s',&-]/gu,'').replace(/ready in.*$/i,'').trim();
@@ -776,16 +713,10 @@ function parseText(t){
     mains:sug(OPTS.mains,{Chicken:['chicken'],Beef:['beef','mince'],Seafood:['salmon','prawn','fish','cod'],Pasta:['pasta','spaghetti','linguine'],Eggs:['egg'],Veg:['aubergine','veg']}),
     diets:/vegan/.test(low)?['Vegan']:/vegetarian/.test(low)?['Vegetarian']:[],cuisine:/thai|curry/.test(low)?'Thai':'',customText:''};
 }
-function parseShots(n){
-  const d=parseText(SAMPLE);
-  d.source='Screenshot'; d.shotCount=n; d.original=SAMPLE; d.origSteps=4; d.flags=[]; d.staged=true;
-  if(n>1){ d.flags.push('Couldn’t read the cream amount in screenshot 2. Check it below.'); d.ingText=d.ingText.replace(/^100ml double cream$/m,'double cream (amount?)'); }
-  return d;
-}
 function blankDraft(){return {title:'',source:'Own recipe',url:'',time:30,serves:2,effort:'Easy',ingText:'',metText:'',meals:[],mains:[],diets:[],cuisine:'',customText:''}}
 
 // ---------- real recipe reading (Claude, via the Supabase function) ----------
-// READER_URL: the read-recipe function's address. Empty = not set up yet (falls back to the sample).
+// READER_URL: the read-recipe function's address.
 const READER_URL = 'https://iqfcqxjgxrfkmrbrthmd.supabase.co/functions/v1/read-recipe';
 const store = { get(k){ try{ return localStorage.getItem('pizzico.'+k)||''; }catch(e){ return ''; } }, set(k,v){ try{ localStorage.setItem('pizzico.'+k,v); }catch(e){} } };
 S.readCode = store.get('readcode'); S.readModel = store.get('readmodel')||'haiku';
@@ -863,7 +794,6 @@ document.addEventListener('click',e=>{
     case 'opentrash': S.sheet=null; S.view=null; S.tab='trash'; break;
     case 'restore': restore(+el.dataset.id); toast('Recipe restored'); return;
     case 'undodel': if(restore(S.lastDel)){S.toast=null;S.toastUndo=false;} break;
-    case 'skipday': {S.day++; S.books.forEach(b=>{b.trash=b.trash.filter(t=>S.day-t.day<7);}); trash=active?active.trash:[]; break;}
     case 'copycode': (async()=>{ try{ await navigator.clipboard.writeText(S.book.code); toast('Code copied'); }catch(err){ toast('Press and hold the code to copy it'); } })(); return;
     case 'sharecode': {const txt='Join my recipe book on Pizzico: https://stefdicembre.github.io/pizzico/ and tap Join with a code. Code: '+S.book.code; if(navigator.share){ navigator.share({text:txt}).catch(()=>{}); } else { navigator.clipboard.writeText(txt).then(()=>toast('Invite copied'),()=>toast('Press and hold the code to copy it')); } return;}
     case 'resetcode': sb.rpc('new_book_code',{b:S.book.id}).then(({data,error})=>{ if(error) return toast(friendly(error),false,3500); S.book.code=data; toast('New code made. The old one stops working.'); }); return;
@@ -884,23 +814,21 @@ document.addEventListener('click',e=>{
     case 'tab': S.tab=v; S.view=null; if(v!=='add') S.add.draft=null; break;
     case 'open': S.view=+v; break;
     case 'back': S.view=null; break;
-    case 'sheet': S.sheet=v; S.rateDraft={stars:0,note:''}; break;
+    case 'sheet': S.sheet=v; break;
     case 'closesheet': S.sheet=null; break;
     case 'togf': {const arr=S.f[el.dataset.g]; const i=arr.indexOf(v); i<0?arr.push(v):arr.splice(i,1); break;}
     case 'favonly': S.favOnly=!S.favOnly; break;
     case 'clear': S.f={meals:[],mains:[],diets:[],cuisines:[],times:[],custom:[]}; S.q=''; S.favOnly=false; break;
     case 'fav': {const x=byId(+v); x.favs[me]=!x.favs[me]; break;}
     case 'step': {const d=S.stepsDone[r.id]=S.stepsDone[r.id]||{}; d[el.dataset.i]=!d[el.dataset.i]; break;}
-    case 'priv': r.notes[me].priv=!r.notes[me].priv; break;
     case 'rxr': {const arr=(r.reacts[el.dataset.e]=r.reacts[el.dataset.e]||[]); const i=arr.indexOf(me); i<0?arr.push(me):arr.splice(i,1); break;}
     case 'rxc': {const c=r.comments[+el.dataset.c]; const arr=(c.reacts[el.dataset.e]=c.reacts[el.dataset.e]||[]); const i=arr.indexOf(me); i<0?arr.push(me):arr.splice(i,1); break;}
     case 'postc': if(S.commentDraft.trim()){r.comments.push({who:me,text:S.commentDraft.trim(),reacts:{}}); S.commentDraft='';} break;
-    case 'star': S.rateDraft.stars=+v; break;
-    case 'logcook': if(!S.rateDraft.stars){toast('Tap a star rating first');return;} r.cooked.unshift({who:me,stars:S.rateDraft.stars,note:S.rateDraft.note,date:'Today',at:new Date().toISOString()}); S.sheet=null; toast('Added to your journal'); return;
+    case 'rate': {const n=+v; r.ratings=r.ratings||{}; if(r.ratings[me]===n) delete r.ratings[me]; else r.ratings[me]=n; break;}
     case 'cookmode': S.cook={id:+v,i:0}; break;
     case 'cookexit': S.cook=null; break;
     case 'cookprev': if(S.cook.i>0) S.cook.i--; break;
-    case 'cooknext': {const rr=byId(S.cook.id); if(S.cook.i<rr.method.length-1) S.cook.i++; else {S.cook=null; S.sheet='rate'; S.view=rr.id;} break;}
+    case 'cooknext': {const rr=byId(S.cook.id); if(S.cook.i<rr.method.length-1) S.cook.i++; else {S.cook=null; S.view=rr.id;} break;}
     case 'planpick': S.planPick=el.dataset.k; S.sheet='planpick'; break;
     case 'planset': plan[el.dataset.k]=+v; S.sheet=null; toast('Added to plan'); return;
     case 'planrm': delete plan[el.dataset.k]; break;
@@ -910,9 +838,7 @@ document.addEventListener('click',e=>{
     case 'quickrm': S.quick=S.quick.filter(x=>x!==v); break;
     case 'quickadd': {const t=S.quickInput.trim().toLowerCase(); if(t){t.split(',').map(x=>x.trim()).filter(x=>x&&!S.quick.includes(x)).forEach(x=>S.quick.push(x)); S.quickInput='';} break;}
     case 'cantrm': S.cant=S.cant.filter(x=>x!==v); break;
-    case 'sample': S.add.text=SAMPLE; break;
     case 'addstep': S.add.step=v; if(v==='link') S.add.src='ig'; break;
-    case 'samplelink': S.add.url='https://www.instagram.com/reel/C9xPizzico/'; break;
     case 'pasteurl': (async()=>{ try{ const t=(await navigator.clipboard.readText()).trim(); if(t){S.add.url=cleanIG(t); render();} else toast('Nothing copied yet'); }catch(err){ toast('Long-press the box and tap Paste'); const i=document.querySelector('[data-in=addurl]'); if(i) i.focus(); } })(); return;
     case 'addnext': {const u=cleanIG(S.add.url); S.add.url=u; if(!u){toast('Paste the link first');return;} if(!isIG(u)){toast('That isn’t an Instagram link. Try Other ways to add.',false,2800);return;} S.add.step='caption'; S.add.src='ig'; break;}
     case 'pastetoggle': S.add.pasteOpen=!S.add.pasteOpen; break;
@@ -920,7 +846,7 @@ document.addEventListener('click',e=>{
     case 'othershots': S.add.src='shots'; S.add.step='caption'; S.add.pasteOpen=false; break;
     case 'webgo': {const u=S.add.web.trim(); if(!u){toast('Paste a link first');return;} if(S.add.busy) return;
       if(isIG(u)){toast('For Instagram, go back and paste the link there.',false,2800);return;}
-      if(!readerReady()){ const d=parseText(SAMPLE); d.source='Website'; d.url=u; d.original=SAMPLE; d.origSteps=4; d.flags=[]; d.staged=true; S.add.draft=d; S.add.showOrig=false; toast(READER_URL?'Add your reading code in Settings. Showing the sample.':'Recipe reading isn’t set up yet. Showing the sample.',false,3000); return; }
+      if(!readerReady()){ toast('Add your reading code in Settings first.',false,3000); return; }
       S.add.busy=true; render();
       askReader({kind:'url',url:/^https?:\/\//i.test(u)?u:'https://'+u}).then(res=>{ S.add.draft=draftFrom(res,{source:'Website',url:res.url||u}); S.add.showOrig=false; })
         .catch(err=>toast(err.message,false,4000)).finally(()=>{ S.add.busy=false; render(); });
@@ -931,12 +857,7 @@ document.addEventListener('click',e=>{
       const pasted=ig&&a.pasteOpen;
       if(pasted&&!a.text.trim()){toast('Paste the caption first');return;}
       if(!pasted&&!n){ toast('Add a screenshot first'); return; }
-      const real=readerReady()&&(pasted||a.shots.every(x=>x.file));
-      if(!real){
-        if(pasted){ const d=parseText(a.text); d.original=a.text; d.url=link; d.source='Instagram'; d.flags=[]; a.draft=d; }
-        else { const d=parseShots(n); d.url=link; d.source=ig?'Instagram':'Screenshot'; a.draft=d; }
-        if(!readerReady()) toast(READER_URL?'Add your reading code in Settings. Showing the sample.':'Recipe reading isn’t set up yet. Showing the sample.',false,3000);
-        a.showOrig=false; break; }
+      if(!readerReady()){ toast('Add your reading code in Settings first.',false,3000); return; }
       a.busy=true; render();
       (async()=>{ try{
           const res=pasted?await askReader({kind:'text',text:a.text})
@@ -951,7 +872,6 @@ document.addEventListener('click',e=>{
     case 'readmodel': S.readModel=v; store.set('readmodel',v); break;
     case 'shotrm': S.add.shots.splice(+el.dataset.i,1); break;
     case 'shotmv': {const i=+el.dataset.i,j=i+(+v); const sh=S.add.shots; if(j>=0&&j<sh.length){[sh[i],sh[j]]=[sh[j],sh[i]];} break;}
-    case 'shotsample': S.add.shots=[1,2,3].map(k=>({src:null,label:'Sample screenshot '+k})); break;
     case 'toggleorig': S.add.showOrig=!S.add.showOrig; break;
     case 'blank': S.add.draft=blankDraft(); break;
     case 'draftcancel': {const id=S.add.draft&&S.add.draft.editId; S.add.draft=null; if(id){S.view=id;S.tab='library';} break;}
@@ -979,8 +899,8 @@ document.addEventListener('input',e=>{
   const el=e.target, k=el.dataset.in; if(!k) return;
   const v=el.value, d=S.add.draft;
   const m={q:()=>{S.q=v;render();const q=$('#q');q.focus();q.setSelectionRange(v.length,v.length);},
-    note:()=>{byId(S.view).notes[S.me].text=v},cmt:()=>{S.commentDraft=v},ci:()=>{S.cantInput=v},quickinput:()=>{S.quickInput=v},shopinput:()=>{S.shopInput=v},onb_name:()=>{S.onb[S.me].name=v},onb_book:()=>{S.onb[S.me].bookName=v},onb_code:()=>{S.onb[S.me].code=v},bookname:()=>{S.book.name=v},auth_name:()=>{S.auth.name=v},auth_email:()=>{S.auth.email=v},auth_code:()=>{S.auth.code=v},
-    addtext:()=>{S.add.text=v},readcode:()=>{S.readCode=v.trim();store.set('readcode',S.readCode)},addurl:()=>{S.add.url=v},weburl:()=>{S.add.web=v},ratenote:()=>{S.rateDraft.note=v},
+    note:()=>{byId(S.view).note=v},cmt:()=>{S.commentDraft=v},ci:()=>{S.cantInput=v},quickinput:()=>{S.quickInput=v},shopinput:()=>{S.shopInput=v},onb_name:()=>{S.onb[S.me].name=v},onb_book:()=>{S.onb[S.me].bookName=v},onb_code:()=>{S.onb[S.me].code=v},bookname:()=>{S.book.name=v},auth_name:()=>{S.auth.name=v},auth_email:()=>{S.auth.email=v},auth_code:()=>{S.auth.code=v},
+    addtext:()=>{S.add.text=v},readcode:()=>{S.readCode=v.trim();store.set('readcode',S.readCode)},addurl:()=>{S.add.url=v},weburl:()=>{S.add.web=v},
     d_title:()=>{d.title=v},d_source:()=>{d.source=v},d_time:()=>{d.time=v},d_serves:()=>{d.serves=v},d_ing:()=>{d.ingText=v},d_met:()=>{d.metText=v},d_custom:()=>{d.customText=v}};
   m[k]&&m[k]();
   queueSync();
@@ -1004,7 +924,7 @@ let sb = null, rt = null, syncTimer = null, syncBusy = false, syncAgain = false,
 const saved = { rec:new Map(), del:new Map(), book:new Map() };         // what the database last held, to spot changes
 const canon = v => v===undefined ? 'null' : Array.isArray(v) ? '['+v.map(canon).join(',')+']'
   : (v && typeof v==='object') ? '{'+Object.keys(v).filter(k=>v[k]!==undefined).sort().map(k=>JSON.stringify(k)+':'+canon(v[k])).join(',')+'}' : JSON.stringify(v);
-const REC_DEFAULTS = () => ({favs:{},cooked:[],notes:{},comments:[],reacts:{},custom:[],diets:[],meals:[],mains:[],cuisine:'',source:'Instagram',ingredients:[],method:[]});
+const REC_DEFAULTS = () => ({favs:{},ratings:{},note:'',comments:[],reacts:{},custom:[],diets:[],meals:[],mains:[],cuisine:'',source:'Instagram',ingredients:[],method:[]});
 const strip = r => { const { id, sid, ...rest } = r; return rest; };
 function friendly(e){
   const m=String((e&&e.message)||e||'');
@@ -1015,7 +935,11 @@ function friendly(e){
   return m||'Something went wrong. Try again.';
 }
 function setUser(id,name,colour){ const n=(name||'').trim(); USERS[id]={name:n||'Someone',initial:(n[0]||'?').toUpperCase(),cls:PERSON_CLS[(colour||0)%3]}; }
-function recFromRow(row){ const r=Object.assign(REC_DEFAULTS(),row.data||{}); r.sid=row.id; r.added=r.added||row.created_by; return r; }
+function recFromRow(row){ const d=row.data||{}; const r=Object.assign(REC_DEFAULTS(),d);
+  if(Array.isArray(d.cooked)&&d.cooked.length){ r.ratings=Object.assign({},r.ratings); d.cooked.slice().reverse().forEach(c=>{ if(c&&c.who&&c.stars) r.ratings[c.who]=c.stars; }); }
+  if(d.note===undefined&&d.notes&&typeof d.notes==='object'){ const t=Object.entries(d.notes).filter(([k,x])=>x&&x.text&&x.text.trim()); r.note=t.length>1?t.map(([k,x])=>USERS[k].name+': '+x.text.trim()).join('\n\n'):(t.length?t[0][1].text.trim():''); }
+  delete r.cooked; delete r.notes;
+  r.sid=row.id; r.added=r.added||row.created_by; return r; }
 const normPayload = row => canon(strip(recFromRow(row)));
 function applyRow(target,row){ const n=recFromRow(row), id=target.id; Object.keys(target).forEach(k=>delete target[k]); Object.assign(target,n); target.id=id; return target; }
 

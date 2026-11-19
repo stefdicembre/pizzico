@@ -241,6 +241,8 @@ const DAYS = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
 const SLOTS = ['Breakfast','Lunch','Dinner'];
 const REACTS = ['😍','👍','🔥','📅'];
 const TODAY_IDX = 6; // Sunday
+// Parked 19 Nov: the planner and shopping list are still in the code, just not shown. Set to true to bring a tab back.
+const FEATURES = { plan:false, shop:false };
 
 // ---------- recipe helper ----------
 let nid = 100;
@@ -402,12 +404,12 @@ function render(){
   $('#demo').style.display='none';
   const chip=$('#bookchip'); chip.style.display=member?'':'none'; if(bk&&member) chip.innerHTML=`${ic('book',14)}<span style="overflow:hidden;text-overflow:ellipsis">${esc(bk.name)}</span>${ic('chevD',14)}`;
   $('#bookbtn').style.display=member?'':'none'; $('#bookbtn').innerHTML=ic('settings',22);
-  const tabs=[['library','bookOpen','Library'],['cant','fridge','Fridge'],['add','plus','Add'],['plan','calendar','Plan'],['shop','bag','List']];
-  const shopLeft=S.shop.filter(i=>!i.done).length;
-  $('#nav').innerHTML = !member ? '' : tabs.map(([k,i,l])=>`<button class="${k==='add'?'add':''} ${S.tab===k&&!S.view?'on':''}" data-act="tab" data-v="${k}" style="position:relative" ${k==='add'?'aria-label="Add a recipe"':''} ${S.tab===k&&!S.view?'aria-current="page"':''}><span class="ic">${ic(i,k==='add'?26:23,'')}</span>${k==='add'?'':l}${k==='shop'&&shopLeft?`<i class="badge">${shopLeft}</i>`:''}</button>`).join('');
+  const tabs=[['library','bookOpen','Ricette'],['cant','fridge','Frigo'],['add','plus','Add'],['todo','clipboard','Da fare'],['favs','heart','Preferiti'],...(FEATURES.plan?[['plan','calendar','Piano']]:[]),...(FEATURES.shop?[['shop','bag','Spesa']]:[])];
+  const shopLeft=S.shop.filter(i=>!i.done).length, todoLeft=recipes.filter(needsWork).length;
+  $('#nav').innerHTML = !member ? '' : tabs.map(([k,i,l])=>`<button class="${k==='add'?'add':''} ${S.tab===k&&!S.view?'on':''}" data-act="tab" data-v="${k}" style="position:relative" ${k==='add'?'aria-label="Add a recipe"':''} ${S.tab===k&&!S.view?'aria-current="page"':''}><span class="ic">${ic(i,k==='add'?26:23,'')}</span>${k==='add'?'':l}${k==='shop'&&shopLeft?`<i class="badge">${shopLeft}</i>`:''}${k==='todo'&&todoLeft?`<i class="badge">${todoLeft}</i>`:''}</button>`).join('');
   const main=$('#main'); const scroll=main.scrollTop;
   const nb=S.notice[S.me]?`<div class="note" style="display:flex;gap:8px;justify-content:space-between"><span>${esc(S.notice[S.me])}</span><button data-act="dismissnotice" aria-label="Dismiss" style="padding:6px;margin:-6px">${ic('x',16)}</button></div>`:'';
-  main.innerHTML = nb + (!member ? viewOnboard() : S.view ? viewDetail(byId(S.view)) : ({library:viewLibrary,cant:viewCant,add:viewAdd,plan:viewPlan,shop:viewShop,trash:viewTrash})[S.tab]());
+  main.innerHTML = nb + (!member ? viewOnboard() : S.view ? viewDetail(byId(S.view)) : (({library:viewLibrary,cant:viewCant,add:viewAdd,plan:viewPlan,shop:viewShop,trash:viewTrash,todo:viewTodo,favs:viewFavs})[S.tab]||viewLibrary)());
   main.scrollTop = scroll;
   if(S.scrollTo){ const w=S.scrollTo; S.scrollTo=null; main.scrollTop=0; if(w==='met'){ const t=main.querySelector('[data-in=d_met]'); if(t){ t.scrollIntoView({block:'center'}); try{t.focus({preventScroll:true});}catch(e){} } } }
   $('#overlay').innerHTML = (member&&S.sheet?viewSheet():'') + (S.cook?viewCook():'') + (S.toast?`<div class="toast" role="status" aria-live="polite">${esc(S.toast)}${S.toastUndo?` <button data-act="undodel" style="margin:-8px -6px -8px 6px;padding:8px 6px;color:var(--toast-link);font-weight:700">Undo</button>`:''}</div>`:'');
@@ -441,7 +443,6 @@ function viewLibrary(){
   return `<div class="search">${ic('search',18)}<input id="q" placeholder="Search recipes, tags or ingredients" value="${esc(S.q)}" data-in="q"></div>
   <div class="chips">
     <button class="chip ${n?'acc':''}" data-act="sheet" data-v="filters">${ic('sliders',15)}Filters${n?' · '+n:''}</button>
-    <button class="chip ${S.favOnly?'on':''}" data-act="favonly">${ic('heart',15)}Favourites</button>
     ${quick.map(m=>`<button class="chip ${S.f.meals.includes(m)?'on':''}" data-act="togf" data-g="meals" data-v="${m}">${m}</button>`).join('')}
     <button class="chip ${S.f.times.includes('Quick (≤30 min)')?'on':''}" data-act="togf" data-g="times" data-v="Quick (≤30 min)">${ic('zap',15)}Quick</button>
   </div>
@@ -477,11 +478,11 @@ function viewDetail(r){
       : (n?`<span style="color:var(--gold);font-size:22px;letter-spacing:1px">${stars(n)}</span>`:`<span class="muted">Not rated yet</span>`)}</div>`; }).join('')}
   <div class="row" style="gap:8px;margin-top:10px">
     ${r.method.length&&!r.needsMethod?`<button class="btn" data-act="cookmode" data-v="${r.id}">${ic('chef',18)}Cook mode</button>`:''}
-    <button class="btn ghost" data-act="sheet" data-v="planadd" aria-label="Add to plan" style="width:auto;padding:12px 14px">${ic('calendar',18)}</button>
+    ${FEATURES.plan?`<button class="btn ghost" data-act="sheet" data-v="planadd" aria-label="Add to plan" style="width:auto;padding:12px 14px">${ic('calendar',18)}</button>`:''}
   </div>
   <div class="row" style="gap:8px;margin-top:8px">
-    <button class="btn ghost sm" style="flex:1" data-act="shopadd" data-v="${r.id}">${ic('bag',15)}Add to shopping list</button>
-    <button class="btn ghost sm" data-act="edit" data-v="${r.id}">${ic('pencil',15)}Edit</button>
+    ${FEATURES.shop?`<button class="btn ghost sm" style="flex:1" data-act="shopadd" data-v="${r.id}">${ic('bag',15)}Add to shopping list</button>`:''}
+    <button class="btn ghost sm" ${FEATURES.shop?'':'style="flex:1" '}data-act="edit" data-v="${r.id}">${ic('pencil',15)}Edit</button>
     <button class="btn ghost sm" data-act="sheet" data-v="del" style="color:var(--danger)" aria-label="Delete">${ic('trash',15)}</button>
   </div>
   <div class="row between" style="margin:18px 0 6px"><h2 style="margin:0">Ingredients</h2>
@@ -535,6 +536,19 @@ function viewPlan(){
 }
 
 function stars(n){ const k=Math.round(n); return `<span role="img" aria-label="${k} out of 5 stars">${'★'.repeat(k)+'☆'.repeat(5-k)}</span>`; }
+function needsWork(r){ return !!r.needsMethod||!r.ingredients.length||!r.method.length; }
+function whyTodo(r){ if(!r.ingredients.length&&!r.method.length) return 'Only the link is saved so far'; if(!r.method.length||r.needsMethod) return 'No method yet'; return 'No ingredients yet'; }
+function viewTodo(){
+  const list=recipes.filter(needsWork);
+  return `<h2 style="margin-top:6px">Da fare</h2><div class="muted" style="margin-bottom:10px">Recipes that still need their ingredients or method. Tap one, then Edit.</div>
+  ${list.length?list.map(r=>`<button class="match" data-act="open" data-v="${r.id}"><div class="t" style="${tileStyle(r)}">${tileText(r)}</div><div style="flex:1"><b style="font-size:14px">${esc(r.title||'Untitled')}</b><div class="muted">${whyTodo(r)}${r.url&&r.source?' · from '+esc(r.source):''}</div></div>${ic('chevR',16)}</button>`).join(''):`<div class="empty-state">${ic('checkCircle',36,'es-ic')}Nothing left to do.<br>Every recipe has its ingredients and method.</div>`}`;
+}
+function viewFavs(){
+  const list=recipes.filter(r=>Object.values(r.favs).some(Boolean)).sort((a,b)=>(avgStars(b)||0)-(avgStars(a)||0)||String(a.title).localeCompare(String(b.title)));
+  return `<h2 style="margin-top:6px">Preferiti</h2><div class="muted" style="margin-bottom:10px">Everything either of you has hearted, best rated first.</div>
+  ${list.length?`<div class="grid">${list.map(card).join('')}</div>`:`<div class="empty-state">${ic('heart',36,'es-ic')}No favourites yet.<br>Tap the heart on a recipe to add it here.</div>`}`;
+}
+
 function viewTrash(){
   const items=trash.filter(t=>S.day-t.day<7);
   return `<button class="back" data-act="tab" data-v="library">${ic('chevL',16)}Recipe book</button><h2 style="margin-top:0">Recently deleted</h2>

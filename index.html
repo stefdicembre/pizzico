@@ -716,9 +716,31 @@ function viewSheet(){
         <span class="row" style="gap:14px"><button class="back tlink" style="font-size:13px" data-act="copycode">Copy</button><button class="back tlink" style="font-size:13px" data-act="sharecode">Share</button><button class="back tlink" style="font-size:13px;color:var(--muted)" data-act="resetcode">New code</button></span>
       </div></div>
     <div class="field" style="margin-top:18px"><label>Your account</label><div class="muted">${esc(USERS[S.me].name)}, signed in on this phone. If you ever clear Safari’s data, or remove Pizzico from your Home Screen and add it again, type your name again and rejoin the book with its code.</div></div>
+    <div class="field" style="margin-top:18px"><label>Save from Instagram</label><button class="btn ghost" data-act="shortcutopen" style="margin-bottom:6px">${ic('upload',16)}Set up the iPhone Shortcut</button><div class="muted" style="font-size:13px">Share a reel straight to Pizzico from Instagram, without opening the app. It lands in Da fare.</div></div>
     <div class="field" style="margin-top:18px"><label>Back up</label><button class="btn ghost" data-act="exportrecipes" style="margin-bottom:6px">${ic('download',16)}Export my recipes</button><div class="muted" style="font-size:13px">Saves every recipe in this book as a file you can keep. Worth doing now and then.</div>
       <button class="btn ghost" data-act="restorepick" style="margin:14px 0 6px">${ic('upload',16)}Restore from a file</button><div class="muted" style="font-size:13px">Adds back anything from a backup file that isn’t already in this book. It never deletes or changes what’s here.</div></div>
     <button class="btn ghost" style="color:var(--danger)" data-act="sheet" data-v="leave">Leave this recipe book</button>`;
+  }
+  if(s==='shortcut'){
+    const sh=S.share||{}, K=sh.key, when=sh.info?new Date(sh.info).toLocaleDateString('en-GB',{day:'numeric',month:'short'}):'';
+    const cp=(v,l)=>`<button class="back tlink" style="font-size:13px" data-act="copyshare" data-v="${v}">${l||'Copy'}</button>`;
+    const box=t=>`<div style="padding:9px 12px;background:var(--card);border:1px solid var(--line);border-radius:12px;font:600 12px ui-monospace,Menlo,Consolas,monospace;word-break:break-all;user-select:all;-webkit-user-select:all;margin:4px 0 2px">${esc(t)}</div>`;
+    inner=`<h3>Save from Instagram</h3>`+(sh.info===undefined&&!K?`<div class="muted">Checking…</div>`:`
+      <div class="muted" style="margin-bottom:12px">An iPhone Shortcut adds a Share option to Instagram. Tap Share on a reel, choose Pizzico, and the link is saved in ‘${esc(S.book.name)}’ without opening the app. Each person makes their own key on their own phone.</div>
+      ${K?`<div class="note warn" role="alert"><b>Copy your key now.</b> It is shown once and can’t be read back. If you lose it, make a new one.</div>
+      <div class="field"><label>Your share key</label>${box(K)}<div class="row" style="justify-content:flex-end">${cp('key')}</div></div>
+      <div class="field"><label>Web address (for the Shortcut)</label>${box(SHARE_URL)}<div class="row" style="justify-content:flex-end">${cp('url')}</div></div>
+      <div class="field"><label>apikey header (for the Shortcut)</label>${box(SUPABASE_KEY)}<div class="row" style="justify-content:flex-end">${cp('apikey')}</div></div>
+      <div class="muted" style="font-size:13px;margin-bottom:12px"><b>In the Shortcuts app:</b><ol style="margin:6px 0 0 18px;padding:0">
+        <li>New shortcut, name it Pizzico. Open its settings and switch on Show in Share Sheet, with types URLs and Text only.</li>
+        <li>Add Get Contents of URL. Paste the web address. Method POST.</li>
+        <li>Headers: apikey = the apikey above; Content-Type = application/json.</li>
+        <li>Request Body JSON: add a Text field <b>key</b> with your share key, and a Text field <b>link</b> set to Shortcut Input.</li>
+        <li>Add Get Dictionary Value for <b>message</b> from Contents of URL, then Show Notification with that value.</li></ol></div>`
+      :sh.info?`<div class="field"><label>Your key</label><div class="muted">You made a share key on ${esc(when)}. It can’t be shown again. Make a new one to replace it, and update the Shortcut with the new key.</div></div>`
+      :`<div class="muted" style="margin-bottom:12px">You haven’t made a key yet.</div>`}
+      <div class="row"><button class="btn" data-act="sharekeymake" ${S.busy?'disabled':''}>${sh.info||K?'Make a new key':'Make my share key'}</button>${sh.info&&!K?`<button class="btn ghost" data-act="sharekeyrm">Switch it off</button>`:''}</div>
+      <button class="btn ghost" data-act="sheet" data-v="book" style="margin-top:8px">Back to settings</button>`);
   }
   if(s==='books'){
     inner=`<h3>Your recipe books</h3>${myBooks(S.me).map(b=>`<button class="match" data-act="switchbook" data-v="${b.id}"><div class="t" style="background:${b.id===S.book.id?'var(--accent-soft)':'var(--line)'};color:var(--accent)">${ic('book',24)}</div><div style="flex:1"><b style="font-size:14px">${esc(b.name)}</b><div class="muted">${b.members.length} member${b.members.length===1?'':'s'} · ${b.recipes.length} recipe${b.recipes.length===1?'':'s'}</div></div>${b.id===S.book.id?'<span class="tag">Open</span>':''}</button>`).join('')}
@@ -861,6 +883,13 @@ document.addEventListener('click',e=>{
     case 'opentrash': S.sheet=null; S.view=null; S.tab='trash'; break;
     case 'restore': restore(+el.dataset.id); toast('Recipe restored'); return;
     case 'undodel': if(restore(S.lastDel)){S.toast=null;S.toastUndo=false;} break;
+    case 'shortcutopen': S.share={info:undefined,key:null}; S.sheet='shortcut'; render();
+      sb.rpc('my_share_key_info').then(({data,error})=>{ if(S.share) S.share.info=error?null:(data||null); render(); },()=>{ if(S.share) S.share.info=null; render(); }); return;
+    case 'sharekeymake': { if(S.busy) return; S.busy=true; render();
+      sb.rpc('make_share_key').then(({data,error})=>{ if(error) return toast(friendly(error),false,3500); S.share={info:new Date().toISOString(),key:data}; })
+        .catch(e=>toast(friendly(e),false,3500)).finally(()=>{ S.busy=false; render(); }); return; }
+    case 'sharekeyrm': sb.rpc('remove_share_key').then(({error})=>{ if(error) return toast(friendly(error),false,3500); S.share={info:null,key:null}; toast('Share key switched off'); },e=>toast(friendly(e),false,3500)); return;
+    case 'copyshare': { const t=v==='key'?(S.share&&S.share.key):v==='url'?SHARE_URL:SUPABASE_KEY; (async()=>{ try{ await navigator.clipboard.writeText(t); toast('Copied'); }catch(err){ toast('Press and hold the text to copy it'); } })(); return; }
     case 'exportrecipes': exportRecipes(); return;
     case 'restorepick': pickRestoreFile(); return;
     case 'restoreyes': restoreNow(); return;
@@ -878,8 +907,8 @@ document.addEventListener('click',e=>{
     case 'tab': S.tab=v; S.view=null; if(v!=='add') S.add.draft=null; break;
     case 'open': S.view=+v; break;
     case 'back': S.view=null; break;
-    case 'sheet': S.sheet=v; break;
-    case 'closesheet': S.sheet=null; break;
+    case 'sheet': S.sheet=v; if(v!=='shortcut') S.share=null; break;
+    case 'closesheet': S.sheet=null; S.share=null; break;
     case 'togf': {const arr=S.f[el.dataset.g]; const i=arr.indexOf(v); i<0?arr.push(v):arr.splice(i,1); break;}
     case 'favonly': S.favOnly=!S.favOnly; break;
     case 'clear': S.f={meals:[],mains:[],diets:[],cuisines:[],times:[],custom:[]}; S.q=''; S.favOnly=false; break;
@@ -994,6 +1023,7 @@ document.addEventListener('keydown',e=>{
 
 // ---------- accounts, books and recipes (Supabase, stage 2) ----------
 const SUPABASE_URL = 'https://iqfcqxjgxrfkmrbrthmd.supabase.co';
+const SHARE_URL = 'https://iqfcqxjgxrfkmrbrthmd.supabase.co/rest/v1/rpc/save_shared_link';
 const SUPABASE_KEY = 'sb_publishable__jrd2YNMRBF-gLJkVEFkdQ_ttoyfURE';   // public key: safe in the page, the database rules do the protecting
 const PERSON_CLS = ['stef','partner','third'];                          // colour 0 blue, 1 amber, 2 green (CSS classes)
 let sb = null, rt = null, syncTimer = null, syncBusy = false, syncAgain = false, loadTimer = null;

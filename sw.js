@@ -45,7 +45,7 @@ self.addEventListener('fetch', e => {
     e.respondWith((async () => {
       const c = await caches.open(VERSION);
       try {
-        const r = await withTimeout(fetch(req), 4000);
+        const r = await withTimeout(fetch(req.url, { cache: 'no-cache' }), 4000);
         if (r.ok) c.put(SCOPE, r.clone());
         return r;
       } catch (_) {

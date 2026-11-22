@@ -729,10 +729,15 @@ function viewSheet(){
       <div class="muted" style="margin-bottom:12px">An iPhone Shortcut adds a Share option to Instagram. Tap Share on a reel, choose Pizzico, and the link is saved in ‘${esc(S.book.name)}’ without opening the app. Each person makes their own key on their own phone.</div>
       ${K?`<div class="note warn" role="alert"><b>Copy the address now.</b> It contains your key, which is shown once and can’t be read back. If you lose it, make a new one.</div>
       <div class="field"><label>Your Shortcut address</label>${box(shareAddr(K))}<div class="row" style="justify-content:flex-end">${cp('addr','Copy the address')}</div></div>
-      <div class="muted" style="font-size:13px;margin-bottom:12px"><b>In the Shortcuts app:</b><ol style="margin:6px 0 0 18px;padding:0">
-        <li>Tap +, then the name at the top, and call it Pizzico. Open its settings (i) and switch on <b>Show in Share Sheet</b>.</li>
-        <li>Add <b>Get Contents of URL</b>. Paste the address into the URL box, then tap at the very end of it and choose the <b>Shortcut Input</b> variable.</li>
-        <li>Add <b>Show Result</b>. Done.</li></ol></div>`
+      <div class="muted" style="font-size:13px;margin-bottom:12px"><b>Now, in the Shortcuts app (one step at a time):</b><ol style="margin:6px 0 0 18px;padding:0;line-height:1.5">
+        <li>Tap <b>+</b> to make a new shortcut. Tap the name at the top, choose Rename, and call it <b>Pizzico</b>.</li>
+        <li>Tap the <b>ⓘ</b> button at the bottom and switch on <b>Show in Share Sheet</b>.</li>
+        <li>Tap <b>Search Actions</b>, type <b>Text</b>, and tap the yellow <b>Text</b> action. Tap its empty box and <b>paste</b> the address you copied.</li>
+        <li>Search Actions again: <b>Get Contents of URL</b>. It fills in <b>Text</b> by itself. Don’t tap the blue word.</li>
+        <li>Tap the small <b>›</b> arrow on that card. Set <b>Method</b> to <b>POST</b> and <b>Request Body</b> to <b>Form</b>.</li>
+        <li>Tap <b>Add new field</b>, choose <b>Text</b>. Type <b>link</b> in the <b>Key</b> box. Tap the value box and choose <b>Shortcut Input</b> from the row above the keyboard.</li>
+        <li>Search Actions once more: <b>Show Result</b>. Tap <b>Done</b>.</li></ol>
+        <div style="margin-top:8px"><b>To use it:</b> in Instagram tap Share on a reel, then Pizzico (the first time, tap Always Allow). It says “Saved to … Find it in Da fare.”</div></div>`
       :sh.info?`<div class="field"><label>Your key</label><div class="muted">You made a share key on ${esc(when)}. It can’t be shown again. Make a new one to replace it, and update the Shortcut with the new key.</div></div>`
       :`<div class="muted" style="margin-bottom:12px">You haven’t made a key yet.</div>`}
       <div class="row"><button class="btn" data-act="sharekeymake" ${S.busy?'disabled':''}>${sh.info||K?'Make a new key':'Make my share key'}</button>${sh.info&&!K?`<button class="btn ghost" data-act="sharekeyrm">Switch it off</button>`:''}</div>
@@ -1021,7 +1026,7 @@ document.addEventListener('keydown',e=>{
 const SUPABASE_URL = 'https://iqfcqxjgxrfkmrbrthmd.supabase.co';
 const SHARE_URL = 'https://iqfcqxjgxrfkmrbrthmd.supabase.co/functions/v1/save-link';
 const SUPABASE_KEY = 'sb_publishable__jrd2YNMRBF-gLJkVEFkdQ_ttoyfURE';
-const shareAddr = k => SHARE_URL+'?key='+k+'&link=';   // the Shortcut adds the shared link on the end   // public key: safe in the page, the database rules do the protecting
+const shareAddr = k => SHARE_URL+'?key='+k;   // the Shortcut sends the shared link separately, as a form field   // public key: safe in the page, the database rules do the protecting
 const PERSON_CLS = ['stef','partner','third'];                          // colour 0 blue, 1 amber, 2 green (CSS classes)
 let sb = null, rt = null, syncTimer = null, syncBusy = false, syncAgain = false, loadTimer = null;
 const saved = { rec:new Map(), del:new Map(), book:new Map() };         // what the database last held, to spot changes

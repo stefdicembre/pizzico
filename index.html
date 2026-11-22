@@ -299,6 +299,7 @@ const fmtTime = m=> m>=60 ? (Math.floor(m/60)+'h'+(m%60?(' '+m%60+'m'):'')) : m+
 const timeBucket = m=> m<=30?'Quick (≤30 min)': m<=60?'Weeknight (≤60)':'Slow (60+)';
 function ratingList(r){ return Object.entries(r.ratings||{}).filter(([k,v])=>v>0).map(([k,v])=>({id:k,stars:v})); }
 function avgStars(r){ const l=ratingList(r); return l.length? l.reduce((a,x)=>a+x.stars,0)/l.length : null; }
+function snapWhen(){ if(!S.snapAt) return 'the last time you were online'; const d=new Date(S.snapAt), t=d.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'}); return (d.toDateString()===new Date().toDateString()?'today':d.toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'}))+' at '+t; }
 function toast(t,undo=false,ms=1800){ S.toast=t; S.toastUndo=undo; render(); setTimeout(()=>{ if(S.toast===t){S.toast=null;S.toastUndo=false;render();} },ms); }
 function allTags(r){ return [...r.meals,...r.mains,...r.diets,...(r.cuisine?[r.cuisine]:[]),...r.custom]; }
 function allCustom(){ return [...new Set(recipes.flatMap(r=>r.custom))]; }
@@ -428,11 +429,13 @@ function render(){
   $('#nav').innerHTML = !member ? '' : tabs.map(([k,i,l])=>`<button class="${k==='add'?'add':''} ${S.tab===k&&!S.view?'on':''}" data-act="tab" data-v="${k}" style="position:relative" ${k==='add'?'aria-label="Add a recipe"':''} ${S.tab===k&&!S.view?'aria-current="page"':''}><span class="ic">${ic(i,k==='add'?26:23,'')}</span>${k==='add'?'':l}${k==='shop'&&shopLeft?`<i class="badge">${shopLeft}</i>`:''}${k==='todo'&&todoLeft?`<i class="badge">${todoLeft}</i>`:''}</button>`).join('');
   const main=$('#main'); const scroll=main.scrollTop;
   const nb=S.notice[S.me]?`<div class="note" style="display:flex;gap:8px;justify-content:space-between"><span>${esc(S.notice[S.me])}</span><button data-act="dismissnotice" aria-label="Dismiss" style="padding:6px;margin:-6px">${ic('x',16)}</button></div>`:'';
-  main.innerHTML = nb + (!member ? viewOnboard() : S.view ? viewDetail(byId(S.view)) : (({library:viewLibrary,cant:viewCant,add:viewAdd,plan:viewPlan,shop:viewShop,trash:viewTrash,todo:viewTodo,favs:viewFavs})[S.tab]||viewLibrary)());
+  const ob=S.offline&&member?`<div class="note" role="status" style="display:flex;gap:8px;justify-content:space-between;align-items:center"><span><b>Offline.</b> Showing your recipes as of ${esc(snapWhen())}. You can read, search and cook; adding and editing need a connection.</span><button data-act="retryonline" style="padding:8px;margin:-8px;font-weight:700;color:var(--accent)">Try again</button></div>`:'';
+  main.innerHTML = ob + nb + (!member ? viewOnboard() : S.view ? viewDetail(byId(S.view)) : (({library:viewLibrary,cant:viewCant,add:viewAdd,plan:viewPlan,shop:viewShop,trash:viewTrash,todo:viewTodo,favs:viewFavs})[S.tab]||viewLibrary)());
   main.scrollTop = scroll;
   if(S.scrollTo){ const w=S.scrollTo; S.scrollTo=null; main.scrollTop=0; if(w==='met'){ const t=main.querySelector('[data-in=d_met]'); if(t){ t.scrollIntoView({block:'center'}); try{t.focus({preventScroll:true});}catch(e){} } } }
   $('#overlay').innerHTML = (member&&S.sheet?viewSheet():'') + (S.cook?viewCook():'') + (S.toast?`<div class="toast" role="status" aria-live="polite">${esc(S.toast)}${S.toastUndo?` <button data-act="undodel" style="margin:-8px -6px -8px 6px;padding:8px 6px;color:var(--toast-link);font-weight:700">Undo</button>`:''}</div>`:'');
   a11yPass();
+  if(S.offline) document.querySelectorAll('[data-in=note],[data-in=cmt],[data-in=bookname]').forEach(n=>{ n.readOnly=true; });
   queueSync();
 }
 
@@ -822,6 +825,8 @@ document.addEventListener('click',e=>{
   if(a==='photorm'&&r){ removePhoto(r.photo); r.photo=null; toast('Photo removed'); render(); return; }
   if(a==='closesheet-bg'){ if(e.target===el){S.sheet=null;render();} return; }
   if(a==='chk'||a==='shopchk'){ return; }
+  if(a==='retryonline'){ location.reload(); return; }
+  if(offlineBlocked(a,v)){ toast('You’re offline. Reconnect to change anything.'); return; }
   switch(a){
     case 'serve': S.serves[r.id]=Math.max(1,(S.serves[r.id]||r.serves)+(+v)); break;
     case 'units': S.units=v; break;
@@ -959,6 +964,7 @@ document.addEventListener('click',e=>{
 });
 document.addEventListener('change',e=>{
   const el=e.target;
+  if(S.offline&&(el.id==='photoin'||el.id==='shotin')){ el.value=''; toast('You’re offline. Reconnect to change anything.'); return; }
   if(el.id==='shotin'&&el.files&&el.files.length){ [...el.files].forEach(f=>S.add.shots.push({src:URL.createObjectURL(f),label:f.name,file:f})); el.value=''; render(); return; }
   if(el.id==='photoin'&&el.files&&el.files[0]){ const f=el.files[0], r=byId(S.view); el.value=''; if(r) uploadPhoto(r,f); return; }
   if(el.dataset.act==='shopchk'){S.shop[+el.dataset.i].done=el.checked; render(); return;}
@@ -967,6 +973,7 @@ document.addEventListener('change',e=>{
 document.addEventListener('input',e=>{
   const el=e.target, k=el.dataset.in; if(!k) return;
   const v=el.value, d=S.add.draft;
+  if(S.offline&&!['q','ci','quickinput'].includes(k)) return;
   const m={q:()=>{S.q=v;render();const q=$('#q');q.focus();q.setSelectionRange(v.length,v.length);},
     note:()=>{byId(S.view).note=v},cmt:()=>{S.commentDraft=v},ci:()=>{S.cantInput=v},quickinput:()=>{S.quickInput=v},shopinput:()=>{S.shopInput=v},onb_name:()=>{S.onb[S.me].name=v},onb_book:()=>{S.onb[S.me].bookName=v},onb_code:()=>{S.onb[S.me].code=v},bookname:()=>{S.book.name=v},auth_name:()=>{S.auth.name=v},
     addtext:()=>{S.add.text=v},addurl:()=>{S.add.url=v; S.add.dup=null},weburl:()=>{S.add.web=v; S.add.dupWeb=null},
@@ -1014,19 +1021,43 @@ const normPayload = row => canon(strip(recFromRow(row)));
 function applyRow(target,row){ const n=recFromRow(row), id=target.id; Object.keys(target).forEach(k=>delete target[k]); Object.assign(target,n); target.id=id; return target; }
 
 // Load everything this person can see: their books, who is in them, and the recipes.
+// ----- offline viewing: keep a copy of the last-loaded book on this phone -----
+const withTimeout=(p,ms)=>Promise.race([p,new Promise((_,rej)=>setTimeout(()=>rej(new Error('timeout')),ms))]);
+let snapData=null, snapTimer=null;
+function saveSnap(uid,pr,bm,rc){ snapData={uid,savedAt:Date.now(),pr:pr||null,bm:bm||[],rc:rc||[]}; writeSnap(); }
+function writeSnap(){ clearTimeout(snapTimer); snapTimer=setTimeout(()=>{ if(snapData&&!S.offline) store.set('snap',JSON.stringify(snapData)); },300); }
+function hasAuthToken(){ try{ return !!localStorage.getItem('sb-'+SUPABASE_URL.split('//')[1].split('.')[0]+'-auth-token'); }catch(e){ return false; } }
+function loadSnap(){ try{ const t=store.get('snap'); const d=t&&JSON.parse(t); return d&&d.uid&&Array.isArray(d.rc)?d:null; }catch(e){ return null; } }
+function snapUpsert(row){ if(!snapData||!row||!row.id) return; const i=snapData.rc.findIndex(x=>x.id===row.id); if(i>=0) snapData.rc[i]=Object.assign({},snapData.rc[i],row); else snapData.rc.unshift(row); snapData.savedAt=Date.now(); writeSnap(); }
+function snapDrop(id){ if(!snapData) return; snapData.rc=snapData.rc.filter(x=>x.id!==id); writeSnap(); }
+async function enterOffline(snap){
+  const uid=snap.uid; S.me=uid; S.email=''; S.offline=true; S.snapAt=snap.savedAt;
+  S.dev[uid]=S.dev[uid]||{units:'metric',bookId:store.get('book')||null};
+  S.onb[uid]=S.onb[uid]||{step:'welcome',name:'',bookName:'Our Recipe Book',code:'',err:'',open:false};
+  await applyData(uid,snap.pr,snap.bm,snap.rc);
+  S.ready=true; S.tab='library'; render();
+}
+// while offline you can look, search, cook and use the fridge search, but not change anything
+const OFFLINE_OK=new Set(['tab','open','back','sheet','closesheet','closesheet-bg','togf','favonly','clear','step','chk','cookmode','cookexit','cookprev','cooknext','serve','units','mode','cantadd','cantq','cantrm','quickedit','quickadd','quickrm','toggleorig','copycode','sharecode','dismissnotice','exportrecipes','retryonline','switchbook']);
+function offlineBlocked(a,v){ return S.offline && (!OFFLINE_OK.has(a) || (a==='tab'&&v==='add')); }
+window.addEventListener('online',()=>{ if(S.offline) location.reload(); });
 async function loadAll(){
   const uid=S.me;
-  const [pr,bm,rc]=await Promise.all([
+  const [pr,bm,rc]=await withTimeout(Promise.all([
     sb.from('profiles').select('name').eq('id',uid).maybeSingle(),
     sb.from('book_members').select('book_id,user_id,colour,joined_at,profiles(name),books(id,name,code,owner_id)'),
     sb.from('recipes').select('id,book_id,data,created_by,created_at,deleted_at,deleted_by').order('created_at',{ascending:false})
-  ]);
+  ]),10000);
   const err=pr.error||bm.error||rc.error; if(err) throw err;
-  let myName=(pr.data&&pr.data.name)||'';
-  if(!myName&&S.auth.name.trim()){ myName=S.auth.name.trim(); await sb.from('profiles').update({name:myName}).eq('id',uid); }
+  saveSnap(uid,pr.data,bm.data,rc.data);
+  return applyData(uid,pr.data,bm.data,rc.data);
+}
+async function applyData(uid,prd,bmd,rcd){
+  let myName=(prd&&prd.name)||'';
+  if(!myName&&S.auth.name.trim()&&!S.offline){ myName=S.auth.name.trim(); await sb.from('profiles').update({name:myName}).eq('id',uid); }
   setUser(uid,myName,0); S.onb[uid].name=myName||'friend';
   const members=new Map(), raws=new Map();
-  (bm.data||[]).forEach(m=>{ const b=m.books; if(!b) return; raws.set(b.id,b); if(!members.has(b.id)) members.set(b.id,[]); members.get(b.id).push(m);
+  (bmd||[]).forEach(m=>{ const b=m.books; if(!b) return; raws.set(b.id,b); if(!members.has(b.id)) members.set(b.id,[]); members.get(b.id).push(m);
     setUser(m.user_id,(m.profiles&&m.profiles.name)||'',m.colour); });
   const prev=S.books, dropped=prev.filter(b=>!raws.has(b.id)), now=Date.now(), purge=[];
   S.books=[...raws.values()].map(raw=>{
@@ -1035,7 +1066,7 @@ async function loadAll(){
     b.members=members.get(raw.id).sort((x,y)=>new Date(x.joined_at)-new Date(y.joined_at)).map(m=>m.user_id);
     saved.book.set(b.id,b.name);
     const oldRecs=[...b.recipes,...b.trash.map(t=>t.r)], recs=[], tr=[];
-    (rc.data||[]).filter(x=>x.book_id===raw.id).forEach(row=>{
+    (rcd||[]).filter(x=>x.book_id===raw.id).forEach(row=>{
       const age=row.deleted_at?(now-new Date(row.deleted_at))/864e5:0;
       if(row.deleted_at&&age>=7){ purge.push(row.id); return; }
       const old=oldRecs.find(x=>x.sid===row.id);
@@ -1044,13 +1075,13 @@ async function loadAll(){
       if(row.deleted_at) tr.push({r,by:row.deleted_by,day:S.day-Math.floor(age),slots:[]}); else recs.push(r);
     });
     b.recipes=recs; b.trash=tr; return b; });
-  if(purge.length) sb.from('recipes').delete().in('id',purge).then(()=>{},()=>{});
+  if(purge.length&&!S.offline) sb.from('recipes').delete().in('id',purge).then(()=>{},()=>{});
   active=null; loadBook();
   return dropped;
 }
 
 // ----- saving: spot what changed since the database last held it, and send just that -----
-function queueSync(){ if(!sb||!S.me) return; clearTimeout(syncTimer); syncTimer=setTimeout(syncNow,500); }
+function queueSync(){ if(!sb||!S.me||S.offline) return; clearTimeout(syncTimer); syncTimer=setTimeout(syncNow,500); }
 async function pushRecipe(b,r,isDel){
   const data=strip(r), norm=canon(data), when=new Date().toISOString();
   if(!r.sid){
@@ -1068,7 +1099,7 @@ async function pushRecipe(b,r,isDel){
   if(error){ saved.rec.set(r.sid,prevRec); saved.del.set(r.sid,prevDel); throw error; }
 }
 async function syncNow(){
-  if(!sb||!S.me) return;
+  if(!sb||!S.me||S.offline) return;
   if(syncBusy){ syncAgain=true; return; }
   syncBusy=true;
   try{
@@ -1102,8 +1133,9 @@ function dropLocal(sid){
 }
 function onRecipeChange(p){
   try{
-    if(p.eventType==='DELETE'){ const sid=p.old&&p.old.id; if(sid){ dropLocal(sid); renderKeepFocus(); } return; }
+    if(p.eventType==='DELETE'){ const sid=p.old&&p.old.id; if(sid){ snapDrop(sid); dropLocal(sid); renderKeepFocus(); } return; }
     const row=p.new; if(!row||!row.id) return;
+    snapUpsert(row);
     syncOut();
     const b=S.books.find(x=>x.id===row.book_id); if(!b){ queueReload(); return; }
     const isDel=!!row.deleted_at, norm=normPayload(row);
@@ -1135,7 +1167,7 @@ function startRealtime(){
     .on('postgres_changes',{event:'*',schema:'public',table:'book_members'},queueReload)
     .subscribe();
 }
-document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='visible'&&S.me&&sb) queueReload(); });
+document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='visible'&&S.me){ if(S.offline){ if(navigator.onLine) location.reload(); return; } if(sb) queueReload(); } });
 
 // ----- export (backup file) -----
 function exportRecipes(){
@@ -1224,24 +1256,32 @@ async function enter(session){
   const uid=session.user.id; S.me=uid; S.email=session.user.email||'';
   S.dev[uid]=S.dev[uid]||{units:'metric',bookId:store.get('book')||null};
   S.onb[uid]=S.onb[uid]||{step:'welcome',name:'',bookName:'Our Recipe Book',code:'',err:'',open:false};
-  try{ await loadAll(); }catch(e){ console.warn(e); toast('Couldn’t load your recipes. Check your connection.',false,4000); }
-  S.ready=true; S.tab='library'; startRealtime(); render();
+  try{ await loadAll(); }catch(e){
+    console.warn(e); const snap=loadSnap();
+    if(snap&&snap.uid===uid){ S.offline=true; S.snapAt=snap.savedAt; try{ await applyData(uid,snap.pr,snap.bm,snap.rc); }catch(e2){ console.warn(e2); } }
+    else toast('Couldn’t load your recipes. Check your connection.',false,4000);
+  }
+  S.ready=true; S.tab='library'; if(!S.offline) startRealtime(); render();
 }
 function goSignedOut(){
   if(rt){ try{ sb.removeChannel(rt); }catch(e){} rt=null; }
   S.me=null; S.email=''; S.books=[]; recipes=[]; plan={}; S.shop=[]; trash=[]; active=null; S.view=null; S.sheet=null; S.tab='library';
-  saved.rec.clear(); saved.del.clear(); saved.book.clear();
+  saved.rec.clear(); saved.del.clear(); saved.book.clear(); snapData=null; store.set('snap','');
   S.auth={step:'email',email:S.auth.email||'',name:S.auth.name||'',code:'',err:'',busy:false}; S.ready=true; render();
 }
 async function boot(){
   render();
+  const snap=hasAuthToken()?loadSnap():null;   // only if this phone is still signed in
+  if(!window.supabase&&snap){ await enterOffline(snap); return; }
   if(!window.supabase){ S.ready=true; S.auth.err='Couldn’t load the sign-in tools. Check your connection and reload.'; render(); return; }
   sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:false}});
   sb.auth.onAuthStateChange(ev=>{ if(ev==='SIGNED_OUT') goSignedOut(); });
   try{
-    const {data}=await sb.auth.getSession();
-    if(data&&data.session) await enter(data.session); else { S.ready=true; render(); }
-  }catch(e){ S.ready=true; S.auth.err=friendly(e); render(); }
+    const {data}=await withTimeout(sb.auth.getSession(),6000);
+    if(data&&data.session) await enter(data.session);
+    else if(snap){ await enterOffline(snap); }
+    else { S.ready=true; render(); }
+  }catch(e){ if(snap){ await enterOffline(snap); return; } S.ready=true; S.auth.err=friendly(e); render(); }
 }
 function viewSignIn(){
   const a=S.auth, head=welcomeHead();
@@ -1252,6 +1292,7 @@ function viewSignIn(){
     <div class="muted" style="text-align:center;margin-top:12px">No email or password. You stay signed in on this phone. On iPhone, add Pizzico to your Home Screen first (Share, then Add to Home Screen) and open it from there.</div>`;
 }
 
+if('serviceWorker' in navigator&&location.protocol==='https:'||location.hostname==='localhost'){ window.addEventListener('load',()=>{ navigator.serviceWorker.register('sw.js').catch(e=>console.warn('offline cache not available',e)); }); }
 boot();
 </script>
 </body>

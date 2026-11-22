@@ -596,9 +596,25 @@ function viewAdd(){
   <h2 class="addh">Paste the Instagram link</h2>
   <div class="how">In Instagram, tap ${ic('send',16)} <b>Share</b>, then <b>Copy link</b>.</div>
   <div class="pastebox"><input data-in="addurl" inputmode="url" autocomplete="off" autocapitalize="off" placeholder="instagram.com/reel/…" value="${esc(a.url)}"><button data-act="pasteurl">${ic('clipboard',16)}Paste</button></div>
+  ${a.dup?dupNote(a.dup,'ig'):''}
   <button class="btn" data-act="addnext">Next</button>
   <div class="addfoot alt-way"><div class="muted">Not from Instagram?</div>
   <button class="btn alt" data-act="addstep" data-v="other">Add from a website or screenshot</button></div>`;
+}
+// ---------- duplicate links: is this link already in the book (or in Recently deleted)? ----------
+function urlKey(u){ u=String(u||'').trim(); if(!u) return '';
+  const ig=u.match(/instagram\.com\/(?:[^\/?#]+\/)?(?:reel|reels|p|tv)\/([A-Za-z0-9_-]+)/i); if(ig) return 'ig:'+ig[1];
+  try{ const x=new URL(/^https?:\/\//i.test(u)?u:'https://'+u);
+    const keep=[...x.searchParams.entries()].filter(([k])=>!/^(utm_|fbclid|gclid|igsh|igshid|ref$|mc_|_hs)/i.test(k)).sort((a,b)=>a[0].localeCompare(b[0])).map(([k,v])=>k+'='+v).join('&');
+    return (x.hostname.replace(/^www\./,'')+x.pathname.replace(/\/+$/,'')+(keep?'?'+keep:'')).toLowerCase(); }catch(e){ return u.toLowerCase(); } }
+function dupOf(u){ const k=urlKey(u); if(!k) return null;
+  const r=recipes.find(x=>x.url&&urlKey(x.url)===k); if(r) return {r,trashed:false,key:k};
+  const t=trash.find(x=>x.r.url&&urlKey(x.r.url)===k); return t?{r:t.r,trashed:true,key:k}:null; }
+function dupNote(du,kind){
+  const r=du.r, who=r.added===S.me?'you':(USERS[r.added]?USERS[r.added].name:'someone');
+  return `<div class="note warn" role="alert">${ic('alert',15)} <b>Already in your book</b>
+    <div style="margin-top:4px">${du.trashed?`‘${esc(r.title||'Untitled')}’ was deleted recently.`:`‘${esc(r.title||'Untitled')}’ was saved by ${esc(who)} from this link.`}</div>
+    <div class="row" style="gap:8px;margin-top:8px">${du.trashed?`<button class="btn alt sm" data-act="dupseetrash">Recently deleted</button>`:`<button class="btn alt sm" data-act="dupopen" data-v="${r.id}">Open it</button>`}<button class="btn ghost sm" data-act="dupanyway" data-k="${kind}">Add it anyway</button></div></div>`;
 }
 function viewAddCaption(){
   const a=S.add, n=a.shots.length, ig=a.src!=='shots';
@@ -618,6 +634,7 @@ function viewAddOther(){
   return `<button class="back" data-act="addstep" data-v="link">${ic('chevL',16)}Back to Instagram</button>
   <h2 class="addh" style="margin-top:4px">Other ways to add</h2>
   <div class="opt"><div class="row">${ic('globe',20)}<b>From a website</b></div><div class="pastebox"><input data-in="weburl" inputmode="url" autocomplete="off" autocapitalize="off" placeholder="Paste the recipe link" value="${esc(a.web)}"><button data-act="webgo" ${a.busy?'disabled aria-busy="true"':''}>${a.busy?'<span class="spin" aria-hidden="true"></span>Reading…':'Read'}</button></div></div>
+  ${a.dupWeb?dupNote(a.dupWeb,'web'):''}
   <button class="opt" data-act="othershots">${ic('image',20)}<b>From screenshots</b>${ic('chevR',18)}</button>
   <button class="opt" data-act="blank">${ic('pen',20)}<b>Type it in</b>${ic('chevR',18)}</button>`;
 }
@@ -628,6 +645,7 @@ function viewReview(){
   const igFlow=!d.editId&&S.add.src!=='shots'&&S.add.step==='caption';
   return `<button class="back" data-act="draftcancel">${ic('chevL',16)}${d.editId?'Cancel':'Back'}</button>${igFlow?addSteps(3):''}<h2 class="addh" style="margin-top:${igFlow?16:4}px">${d.editId?'Edit recipe':d.linkOnly?'Name it and save':'Check and save'}</h2>
   ${d.editId?'':`<div class="muted" style="margin:-2px 0 14px;font-size:14px">${d.linkOnly?'Just the link for now. Fill in the rest whenever you like.':d.shotCount?`Read from ${d.shotCount} screenshot${d.shotCount>1?'s':''}. Fix anything that looks off.`:d.readBy==='schema'?'Read from the recipe on that page. Fix anything that looks off.':'Fix anything that looks off.'}</div>`}
+  ${d.dupNote?`<div class="note warn" role="alert">${ic('alert',15)} <b>Already in your book.</b> ‘${esc(d.dupNote.r.title||'Untitled')}’ ${d.dupNote.trashed?'was deleted recently':'has this link'}. Tap Save again to add it anyway.</div>`:''}
   ${d.cutOff?`<div class="note warn">${ic('alert',15)} <b>This looks cut off.</b>${d.cutWhy?` ${esc(d.cutWhy)}`:''}<div style="margin-top:8px"><button class="btn alt sm" data-act="addnextshot">Add the next screenshot</button></div></div>`:''}
   ${d.flags&&d.flags.length?`<div class="note warn">${ic('alert',15)} <b>Check these</b><ul>${d.flags.map(f=>`<li>${esc(f)}</li>`).join('')}</ul></div>`:''}
   ${d.methodMissing||d.needsMethod?`<div class="note warn">${ic('alert',15)} <b>No method in this post.</b> The method is probably in the video. Add the steps in the Method box below, or save now and come back to it.</div>`:''}
@@ -846,13 +864,18 @@ document.addEventListener('click',e=>{
     case 'quickadd': {const t=S.quickInput.trim().toLowerCase(); if(t){t.split(',').map(x=>x.trim()).filter(x=>x&&!S.quick.includes(x)).forEach(x=>S.quick.push(x)); S.quickInput='';} break;}
     case 'cantrm': S.cant=S.cant.filter(x=>x!==v); break;
     case 'addstep': S.add.step=v; if(v==='link') S.add.src='ig'; break;
-    case 'pasteurl': (async()=>{ try{ const t=(await navigator.clipboard.readText()).trim(); if(t){S.add.url=cleanIG(t); render();} else toast('Nothing copied yet'); }catch(err){ toast('Long-press the box and tap Paste'); const i=document.querySelector('[data-in=addurl]'); if(i) i.focus(); } })(); return;
-    case 'addnext': {const u=cleanIG(S.add.url); S.add.url=u; if(!u){toast('Paste the link first');return;} if(!isIG(u)){toast('That isn’t an Instagram link. Try Other ways to add.',false,2800);return;} S.add.step='caption'; S.add.src='ig'; break;}
+    case 'pasteurl': (async()=>{ try{ const t=(await navigator.clipboard.readText()).trim(); if(t){S.add.url=cleanIG(t); S.add.dup=null; render();} else toast('Nothing copied yet'); }catch(err){ toast('Long-press the box and tap Paste'); const i=document.querySelector('[data-in=addurl]'); if(i) i.focus(); } })(); return;
+    case 'addnext': {const u=cleanIG(S.add.url); S.add.url=u; if(!u){toast('Paste the link first');return;} if(!isIG(u)){toast('That isn’t an Instagram link. Try Other ways to add.',false,2800);return;} const du=dupOf(u); if(du&&S.add.dupOk!==du.key){ S.add.dup=du; break; } S.add.dup=null; S.add.step='caption'; S.add.src='ig'; break;}
+    case 'dupopen': Object.assign(S.add,{dup:null,dupWeb:null,step:'link',url:'',web:''}); S.tab='library'; S.view=+v; break;
+    case 'dupseetrash': Object.assign(S.add,{dup:null,dupWeb:null,step:'link',url:'',web:''}); S.tab='trash'; S.view=null; break;
+    case 'dupanyway': { if(el.dataset.k==='web'){ if(S.add.dupWeb) S.add.dupOk=S.add.dupWeb.key; S.add.dupWeb=null; render(); setTimeout(()=>{ const b=document.querySelector('[data-act=webgo]'); if(b) b.click(); },0); return; }
+      if(S.add.dup) S.add.dupOk=S.add.dup.key; S.add.dup=null; S.add.step='caption'; S.add.src='ig'; break; }
     case 'pastetoggle': S.add.pasteOpen=!S.add.pasteOpen; break;
     case 'linkonly': {const d=blankDraft(); d.source='Instagram'; d.url=S.add.url.trim(); d.linkOnly=true; S.add.draft=d; break;}
     case 'othershots': S.add.src='shots'; S.add.step='caption'; S.add.pasteOpen=false; break;
     case 'webgo': {const u=S.add.web.trim(); if(!u){toast('Paste a link first');return;} if(S.add.busy) return;
       if(isIG(u)){toast('For Instagram, go back and paste the link there.',false,2800);return;}
+      { const wu=/^https?:\/\//i.test(u)?u:'https://'+u, du=dupOf(wu); if(du&&S.add.dupOk!==du.key){ S.add.dupWeb=du; render(); return; } S.add.dupWeb=null; }
       if(!readerReady()){ toast('Sign in first.',false,3000); return; }
       S.add.busy=true; render();
       askReader({kind:'url',url:/^https?:\/\//i.test(u)?u:'https://'+u}).then(res=>{ S.add.draft=draftFrom(res,{source:'Website',url:res.url||u}); S.add.showOrig=false; })
@@ -885,12 +908,13 @@ document.addEventListener('click',e=>{
     case 'dtog': {const d=S.add.draft,k=el.dataset.k; if(el.dataset.m==='1'){const i=d[k].indexOf(v); i<0?d[k].push(v):d[k].splice(i,1);} else d[k]=(d[k]===v?'':v); break;}
     case 'save': {
       const d=S.add.draft; if(!d.title.trim()){toast('Add a title first');return;}
+      if(!d.editId&&d.url&&!d.dupNote){ const du=dupOf(d.url); if(du&&S.add.dupOk!==du.key){ d.dupNote=du; toast('Already in your book. Tap Save again to add it anyway.',false,3500); return; } }
       if(d.editId){const x=byId(d.editId); const newMet=d.metText.split('\n').map(y=>y.trim()).filter(Boolean); if(x.needsMethod&&newMet.join('\n')!==x.method.join('\n')) delete x.needsMethod; Object.assign(x,{title:d.title.trim(),source:d.source,time:+d.time||30,serves:+d.serves||2,effort:d.effort||'Easy',meals:d.meals,mains:d.mains,diets:d.diets,cuisine:d.cuisine,custom:d.customText.split(',').map(y=>y.trim()).filter(Boolean),ingredients:parseIng(d.ingText),method:d.metText.split('\n').map(y=>y.trim()).filter(Boolean),editedBy:me}); delete S.serves[x.id]; S.add.draft=null; S.tab='library'; S.view=x.id; toast('Changes saved'); return;}
       const emoji=d.mains.includes('Seafood')?'🐟':d.mains.includes('Chicken')?'🍗':d.mains.includes('Pasta')?'🍝':d.mains.includes('Eggs')?'🍳':d.meals.includes('Dessert')?'🍰':'🍽';
       const nr=R({title:d.title.trim(),emoji,color:['#fbe0cc','#e8def0','#f6ead0','#dcebe0','#f3d9d3'][nid%5],time:+d.time||30,effort:d.effort||'Easy',serves:+d.serves||2,meals:d.meals,mains:d.mains,diets:d.diets,cuisine:d.cuisine,custom:d.customText.split(',').map(x=>x.trim()).filter(Boolean),source:d.source,url:d.url||'',added:me,
         ingredients:parseIng(d.ingText),
         method:d.metText.split('\n').map(x=>x.trim()).filter(Boolean)}); if(d.original) nr.original=d.original; if(d.methodMissing) nr.needsMethod=true; if(d.fromPost) nr.fromPost=d.fromPost;
-      recipes.unshift(nr); Object.assign(S.add,{draft:null,text:'',shots:[],url:'',web:'',step:'link',src:'ig',pasteOpen:false}); S.tab='library'; S.view=nr.id; toast('Saved to the library'); return;
+      recipes.unshift(nr); Object.assign(S.add,{draft:null,text:'',shots:[],url:'',web:'',step:'link',src:'ig',pasteOpen:false,dup:null,dupWeb:null,dupOk:''}); S.tab='library'; S.view=nr.id; toast('Saved to the library'); return;
     }
   }
   render();
@@ -907,7 +931,7 @@ document.addEventListener('input',e=>{
   const v=el.value, d=S.add.draft;
   const m={q:()=>{S.q=v;render();const q=$('#q');q.focus();q.setSelectionRange(v.length,v.length);},
     note:()=>{byId(S.view).note=v},cmt:()=>{S.commentDraft=v},ci:()=>{S.cantInput=v},quickinput:()=>{S.quickInput=v},shopinput:()=>{S.shopInput=v},onb_name:()=>{S.onb[S.me].name=v},onb_book:()=>{S.onb[S.me].bookName=v},onb_code:()=>{S.onb[S.me].code=v},bookname:()=>{S.book.name=v},auth_name:()=>{S.auth.name=v},
-    addtext:()=>{S.add.text=v},addurl:()=>{S.add.url=v},weburl:()=>{S.add.web=v},
+    addtext:()=>{S.add.text=v},addurl:()=>{S.add.url=v; S.add.dup=null},weburl:()=>{S.add.web=v; S.add.dupWeb=null},
     d_title:()=>{d.title=v},d_source:()=>{d.source=v},d_time:()=>{d.time=v},d_serves:()=>{d.serves=v},d_ing:()=>{d.ingText=v},d_met:()=>{d.metText=v},d_custom:()=>{d.customText=v}};
   m[k]&&m[k]();
   queueSync();

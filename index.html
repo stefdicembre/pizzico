@@ -285,6 +285,8 @@ const ICONS={
   chevL:'<path d="m15 18-6-6 6-6"/>', chevR:'<path d="m9 18 6-6-6-6"/>', chevD:'<path d="m6 9 6 6 6-6"/>',
   alert:'<path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/>',
   ext:'<path d="M7 17 17 7M8 7h9v9"/>',
+  upload:'<path d="M12 16V5M7 9l5-5 5 5M5 20h14"/>',
+  download:'<path d="M12 4v11M7 11l5 5 5-5M5 20h14"/>',
   utensils:'<path d="M3 2v7a2 2 0 0 0 2 2h4a2 2 0 0 0 2-2V2M7 2v20M21 15V2a5 5 0 0 0-5 5v6a2 2 0 0 0 2 2h3Zm0 0v7"/>',
   send:'<path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/>',
   clipboard:'<rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/>',
@@ -711,6 +713,8 @@ function viewSheet(){
         <span class="row" style="gap:14px"><button class="back tlink" style="font-size:13px" data-act="copycode">Copy</button><button class="back tlink" style="font-size:13px" data-act="sharecode">Share</button><button class="back tlink" style="font-size:13px;color:var(--muted)" data-act="resetcode">New code</button></span>
       </div></div>
     <div class="field" style="margin-top:18px"><label>Your account</label><div class="muted">${esc(USERS[S.me].name)}, signed in on this phone. If you ever clear Safari’s data, or remove Pizzico from your Home Screen and add it again, type your name again and rejoin the book with its code.</div></div>
+    <div class="field" style="margin-top:18px"><label>Back up</label><button class="btn ghost" data-act="exportrecipes" style="margin-bottom:6px">${ic('download',16)}Export my recipes</button><div class="muted" style="font-size:13px">Saves every recipe in this book as a file you can keep. Worth doing now and then.</div>
+      <button class="btn ghost" data-act="restorepick" style="margin:14px 0 6px">${ic('upload',16)}Restore from a file</button><div class="muted" style="font-size:13px">Adds back anything from a backup file that isn’t already in this book. It never deletes or changes what’s here.</div></div>
     <button class="btn ghost" style="color:var(--danger)" data-act="sheet" data-v="leave">Leave this recipe book</button>`;
   }
   if(s==='books'){
@@ -726,6 +730,16 @@ function viewSheet(){
   if(s==='leave'){
     inner=`<h3>Leave ‘${esc(S.book.name)}’?</h3><div class="muted" style="margin-bottom:14px">${S.book.members.length>1?'The recipes stay in the book for everyone else. You can rejoin later with the code.':'You are the only member, so leaving deletes the whole recipe book and everything in it.'}</div>
     <div class="row"><button class="btn ghost" data-act="closesheet">Stay</button><button class="btn" style="background:#b3261e;color:#fff" data-act="leaveyes">Leave</button></div>`;
+  }
+  if(s==='restore'&&S.restore){
+    const x=S.restore, n=x.fresh.length;
+    inner=n
+      ? `<h3>Restore from this backup?</h3><div class="muted" style="margin-bottom:10px">${esc(x.file)}${x.when?' · saved '+esc(x.when):''}</div>
+         <div style="margin-bottom:6px"><b>${n} recipe${n===1?'':'s'}</b> will be added to ‘${esc(S.book.name)}’.</div>
+         <div class="muted" style="margin-bottom:14px">${x.skipped?`${x.skipped} already in the book will be skipped. `:''}Nothing here is deleted or changed. Everyone in the book will see the added recipes.</div>
+         <div class="row"><button class="btn ghost" data-act="closesheet">Cancel</button><button class="btn" data-act="restoreyes">Add ${n} recipe${n===1?'':'s'}</button></div>`
+      : `<h3>Nothing to add</h3><div class="muted" style="margin-bottom:14px">${esc(x.file)} has ${x.total} recipe${x.total===1?'':'s'}, and they are all in this book already (or in Recently deleted).</div>
+         <div class="row"><button class="btn" data-act="closesheet">OK</button></div>`;
   }
   if(s==='del'&&r){
     inner=`<h3>Delete ‘${esc(r.title)}’?</h3><div class="muted" style="margin-bottom:14px">It leaves the recipe book for everyone, but stays in ‘Recently deleted’ in Settings for 7 days so it can be added again.</div>
@@ -842,6 +856,9 @@ document.addEventListener('click',e=>{
     case 'opentrash': S.sheet=null; S.view=null; S.tab='trash'; break;
     case 'restore': restore(+el.dataset.id); toast('Recipe restored'); return;
     case 'undodel': if(restore(S.lastDel)){S.toast=null;S.toastUndo=false;} break;
+    case 'exportrecipes': exportRecipes(); return;
+    case 'restorepick': pickRestoreFile(); return;
+    case 'restoreyes': restoreNow(); return;
     case 'copycode': (async()=>{ try{ await navigator.clipboard.writeText(S.book.code); toast('Code copied'); }catch(err){ toast('Press and hold the code to copy it'); } })(); return;
     case 'sharecode': {const txt='Join my recipe book on Pizzico: https://stefdicembre.github.io/pizzico/ and tap Join with a code. Code: '+S.book.code; if(navigator.share){ navigator.share({text:txt}).catch(()=>{}); } else { navigator.clipboard.writeText(txt).then(()=>toast('Invite copied'),()=>toast('Press and hold the code to copy it')); } return;}
     case 'resetcode': sb.rpc('new_book_code',{b:S.book.id}).then(({data,error})=>{ if(error) return toast(friendly(error),false,3500); S.book.code=data; toast('New code made. The old one stops working.'); }); return;
@@ -1119,6 +1136,71 @@ function startRealtime(){
     .subscribe();
 }
 document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='visible'&&S.me&&sb) queueReload(); });
+
+// ----- export (backup file) -----
+function exportRecipes(){
+  const bk=curBook(); if(!bk){ toast('No recipe book to export'); return; }
+  const people={}; bk.members.forEach(k=>{ people[k]=USERS[k].name; });
+  const dayStamp=new Date().toISOString().slice(0,10);
+  const data={ pizzico_export:1, exported_at:new Date().toISOString(), book:bk.name, people,
+    recipes:bk.recipes.map(strip), recently_deleted:(bk.trash||[]).map(t=>strip(t.r)) };
+  const slug=(bk.name||'book').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')||'book';
+  const name='pizzico-'+slug+'-'+dayStamp+'.json';
+  const file=new File([JSON.stringify(data,null,2)],name,{type:'application/json'});
+  if(navigator.canShare&&navigator.canShare({files:[file]})){
+    navigator.share({files:[file],title:name}).then(()=>toast('Exported '+bk.recipes.length+' recipes'),e=>{ if(!e||e.name!=='AbortError') toast('Couldn’t export'); });
+    return;
+  }
+  const a=document.createElement('a'); a.href=URL.createObjectURL(file); a.download=name; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(a.href),4000);
+  toast('Exported '+bk.recipes.length+' recipes');
+}
+
+// ----- restore from a backup file -----
+function pickRestoreFile(){
+  document.querySelectorAll('input[data-restore]').forEach(x=>x.remove());
+  const i=document.createElement('input'); i.type='file'; i.accept='.json,application/json'; i.setAttribute('data-restore','1'); i.style.display='none';
+  i.addEventListener('change',async()=>{ const f=i.files&&i.files[0]; i.remove(); if(f) readRestoreFile(f); });
+  document.body.appendChild(i); i.click();
+}
+async function readRestoreFile(f){
+  let j; try{ if(f.size>20e6) throw 0; j=JSON.parse(await f.text()); }catch(e){ toast('That isn’t a Pizzico backup file',false,3000); return; }
+  if(!j||j.pizzico_export!==1||!Array.isArray(j.recipes)){ toast('That isn’t a Pizzico backup file',false,3000); return; }
+  const bk=curBook(); if(!bk){ toast('Open a recipe book first'); return; }
+  const have=[...recipes,...trash.map(t=>t.r)];
+  const seenUrl=new Set(have.map(r=>urlKey(r.url)).filter(Boolean)), seenTitle=new Set(have.filter(r=>!urlKey(r.url)).map(r=>String(r.title||'').trim().toLowerCase()));
+  const fresh=[]; let skipped=0;
+  for(const raw of j.recipes.slice(0,2000)){
+    if(!raw||typeof raw!=='object'||!String(raw.title||'').trim()&&!raw.url) { continue; }
+    const k=urlKey(raw.url), t=String(raw.title||'').trim().toLowerCase();
+    if(k?seenUrl.has(k):seenTitle.has(t)){ skipped++; continue; }
+    if(k) seenUrl.add(k); else seenTitle.add(t);
+    fresh.push(raw);
+  }
+  S.restore={file:f.name,when:j.exported_at?new Date(j.exported_at).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}):'',fresh,skipped,total:j.recipes.length,people:j.people&&typeof j.people==='object'?j.people:{}};
+  S.sheet='restore'; render();
+}
+function restoreNow(){
+  const x=S.restore, bk=curBook(); if(!x||!bk) return;
+  // an old person who is now a different id (e.g. a phone that forgot who it was): match by name
+  const byName={}; bk.members.forEach(k=>{ byName[String(USERS[k].name).trim().toLowerCase()]=k; });
+  const map=id=>{ if(bk.members.includes(id)) return id; const nm=String(x.people[id]||'').trim().toLowerCase(); return byName[nm]||id; };
+  const remap=o=>{ const out={}; Object.entries(o&&typeof o==='object'&&!Array.isArray(o)?o:{}).forEach(([k,v])=>{ out[map(k)]=v; }); return out; };
+  let n=0;
+  x.fresh.slice().reverse().forEach(raw=>{
+    const r=JSON.parse(JSON.stringify(raw)); delete r.sid; delete r.id;
+    const base=REC_DEFAULTS();
+    const nr=R(Object.assign(base,r,{
+      favs:remap(r.favs), ratings:remap(r.ratings),
+      comments:(Array.isArray(r.comments)?r.comments:[]).map(c=>Object.assign({},c,{who:map(c&&c.who)})),
+      added:map(r.added)||S.me, ingredients:Array.isArray(r.ingredients)?r.ingredients:[], method:Array.isArray(r.method)?r.method:[],
+      meals:Array.isArray(r.meals)?r.meals:[], mains:Array.isArray(r.mains)?r.mains:[], diets:Array.isArray(r.diets)?r.diets:[], custom:Array.isArray(r.custom)?r.custom:[] }));
+    if(r.editedBy) nr.editedBy=map(r.editedBy);
+    recipes.unshift(nr); n++;
+  });
+  S.restore=null; S.sheet=null; S.tab='library'; S.view=null;
+  toast('Added '+n+' recipe'+(n===1?'':'s'),false,3000); queueSync();
+}
 
 // ----- photos -----
 function removePhoto(url){ try{ const i=url?url.indexOf('/photos/'):-1; if(i>0) sb.storage.from('photos').remove([decodeURIComponent(url.slice(i+8))]); }catch(e){} }

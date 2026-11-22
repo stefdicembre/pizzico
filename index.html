@@ -232,7 +232,7 @@ const OPTS = {
   meals:['Breakfast','Lunch','Dinner','Snack','Dessert','Side','Drink'],
   mains:['Chicken','Beef','Pork','Seafood','Veg','Pasta','Eggs','Oats & grains'],
   diets:['Vegetarian','Vegan','Gluten-free','Dairy-free'],
-  cuisines:['Italian','Asian','Japanese','Indian','Mexican','Middle Eastern','British','Thai'],
+  cuisines:['Italian','Greek','Asian','Japanese','Indian','Mexican','Middle Eastern','British','Thai'],
   times:[['Quick (≤30 min)',30],['Weeknight (≤60)',60],['Slow (60+)',9999]],
   efforts:['Easy','Medium','Hard']
 };
@@ -300,6 +300,23 @@ function avgStars(r){ const l=ratingList(r); return l.length? l.reduce((a,x)=>a+
 function toast(t,undo=false,ms=1800){ S.toast=t; S.toastUndo=undo; render(); setTimeout(()=>{ if(S.toast===t){S.toast=null;S.toastUndo=false;render();} },ms); }
 function allTags(r){ return [...r.meals,...r.mains,...r.diets,...(r.cuisine?[r.cuisine]:[]),...r.custom]; }
 function allCustom(){ return [...new Set(recipes.flatMap(r=>r.custom))]; }
+// Options for a group: the built-in list, plus anything already used on a recipe (or in the draft being edited).
+function optsFor(field, extra){
+  const base=OPTS[field==='cuisine'?'cuisines':field];
+  const used=recipes.flatMap(r=>field==='cuisine'?[r.cuisine]:(r[field]||[])).concat(extra||[]);
+  const out=[...base], low=new Set(base.map(x=>x.toLowerCase()));
+  [...new Set(used.filter(Boolean))].sort((a,b)=>a.localeCompare(b)).forEach(x=>{ if(!low.has(x.toLowerCase())){ low.add(x.toLowerCase()); out.push(x); } });
+  return out;
+}
+// Apply the text typed in a '+ Add' box to the draft (picks the existing option if the name matches one).
+function applyOpt(){
+  const a=S.addOpt, d=S.add.draft; S.addOpt=null; if(!a||!d) return;
+  let t=(a.text||'').trim().replace(/\s+/g,' '); if(!t) return;
+  t=t[0].toUpperCase()+t.slice(1);
+  const hit=optsFor(a.key,a.key==='cuisine'?[d.cuisine]:d[a.key]).find(x=>x.toLowerCase()===t.toLowerCase());
+  const val=hit||t;
+  if(a.key==='cuisine') d.cuisine=val; else if(!d[a.key].includes(val)) d[a.key].push(val);
+}
 
 const THEMES={
   light:{bg:'#fcf5f8',card:'#ffffff',ink:'#1c1519',muted:'#735d69',line:'#f1dfe8',field:'#9c8090',gold:'#a87200',green:'#2f7a4a','err-bg':'#fdeaea','err-line':'#f0b8b8',accent:'#c2186f','accent-soft':'#fde4f0','on-accent':'#ffffff',danger:'#b3261e','toast-link':'#ff7eb6',outer:'#1c1519',tilemix:'100%','note-bg':'#fff9e8','note-line':'#f0e0a8','tag-ink':'#9e1460',partner:'#a65a14',stef:'#3b6fb6',third:'#26795e'},
@@ -641,7 +658,7 @@ function viewAddOther(){
 
 function viewReview(){
   const d=S.add.draft;
-  const grp=(label,key,list,multi=true)=>`<div class="field"><label>${label}</label><div class="chips" style="flex-wrap:wrap">${list.map(o=>{const on=multi?d[key].includes(o):d[key]===o;return `<button class="chip ${on?'on':''}" data-act="dtog" data-k="${key}" data-v="${esc(o)}" data-m="${multi?1:0}">${o}</button>`}).join('')}</div></div>`;
+  const grp=(label,key,list,multi=true,canAdd=false)=>{ const open=canAdd&&S.addOpt&&S.addOpt.key===key; return `<div class="field"><label>${label}</label><div class="chips" style="flex-wrap:wrap">${list.map(o=>{const on=multi?d[key].includes(o):d[key]===o;return `<button class="chip ${on?'on':''}" data-act="dtog" data-k="${key}" data-v="${esc(o)}" data-m="${multi?1:0}">${esc(o)}</button>`}).join('')}${canAdd&&!open?`<button class="chip" data-act="dadd" data-k="${key}" aria-label="Add a new ${label.toLowerCase()} option">+ Add</button>`:''}</div>${open?`<div class="pastebox" style="margin:8px 0 0"><input data-in="dopt" autocomplete="off" autocapitalize="words" placeholder="New ${esc(label.toLowerCase())}" value="${esc(S.addOpt.text)}"><button data-act="doptok">Add</button><button data-act="doptx" aria-label="Cancel">${ic('x',16)}</button></div>`:''}</div>`; };
   const igFlow=!d.editId&&S.add.src!=='shots'&&S.add.step==='caption';
   return `<button class="back" data-act="draftcancel">${ic('chevL',16)}${d.editId?'Cancel':'Back'}</button>${igFlow?addSteps(3):''}<h2 class="addh" style="margin-top:${igFlow?16:4}px">${d.editId?'Edit recipe':d.linkOnly?'Name it and save':'Check and save'}</h2>
   ${d.editId?'':`<div class="muted" style="margin:-2px 0 14px;font-size:14px">${d.linkOnly?'Just the link for now. Fill in the rest whenever you like.':d.shotCount?`Read from ${d.shotCount} screenshot${d.shotCount>1?'s':''}. Fix anything that looks off.`:d.readBy==='schema'?'Read from the recipe on that page. Fix anything that looks off.':'Fix anything that looks off.'}</div>`}
@@ -658,7 +675,7 @@ function viewReview(){
   <div class="field"><label>Ingredients (one per line)</label><textarea data-in="d_ing">${esc(d.ingText)}</textarea></div>
   <div class="field"><label>Method (one step per line)</label><textarea data-in="d_met" placeholder="Type or dictate the steps here. Tap the microphone on your keyboard to dictate.">${esc(d.metText)}</textarea></div>
   ${d.original?`<button class="back tlink" style="margin:0 0 4px" data-act="toggleorig">${S.add.showOrig?'Hide original text':'Show original text'}${ic(S.add.showOrig?'chevD':'chevR',15)}</button>${S.add.showOrig?`<pre class="origtxt">${esc(d.original)}</pre>`:''}`:''}
-  ${grp('Meal type','meals',OPTS.meals)}${grp('Main ingredient','mains',OPTS.mains)}${grp('Diet','diets',OPTS.diets)}${grp('Cuisine','cuisine',OPTS.cuisines,false)}
+  ${grp('Meal type','meals',optsFor('meals',d.meals),true,true)}${grp('Main ingredient','mains',optsFor('mains',d.mains),true,true)}${grp('Diet','diets',optsFor('diets',d.diets),true,true)}${grp('Cuisine','cuisine',optsFor('cuisine',[d.cuisine]),false,true)}
   <div class="field"><label>Custom labels (comma separated)</label><input data-in="d_custom" value="${esc(d.customText)}" placeholder="Date night, Meal prep…"></div>
   <button class="btn" data-act="save">${d.editId?'Save changes':'Save to recipe book'}</button><div style="height:20px"></div>`;
 }
@@ -668,7 +685,7 @@ function viewSheet(){
   let inner='';
   if(s==='filters'){
     const g=(label,key,list)=>`<div class="field"><label>${label}</label><div class="chips" style="flex-wrap:wrap">${list.map(o=>`<button class="chip ${S.f[key].includes(o)?'on':''}" data-act="togf" data-g="${key}" data-v="${esc(o)}">${esc(o)}</button>`).join('')}</div></div>`;
-    inner=`<h3>Filters</h3>${g('Meal type','meals',OPTS.meals)}${g('Main ingredient','mains',OPTS.mains)}${g('Time','times',OPTS.times.map(t=>t[0]))}${g('Diet','diets',OPTS.diets)}${g('Cuisine','cuisines',OPTS.cuisines)}${g('Your labels','custom',allCustom())}
+    inner=`<h3>Filters</h3>${g('Meal type','meals',optsFor('meals'))}${g('Main ingredient','mains',optsFor('mains'))}${g('Time','times',OPTS.times.map(t=>t[0]))}${g('Diet','diets',optsFor('diets'))}${g('Cuisine','cuisines',optsFor('cuisine'))}${g('Your labels','custom',allCustom())}
     <div class="row"><button class="btn ghost" data-act="clear">Reset</button><button class="btn" data-act="closesheet">Show ${filtered().length} recipes</button></div>`;
   }
   if(s==='planadd'){
@@ -904,9 +921,13 @@ document.addEventListener('click',e=>{
     case 'shotmv': {const i=+el.dataset.i,j=i+(+v); const sh=S.add.shots; if(j>=0&&j<sh.length){[sh[i],sh[j]]=[sh[j],sh[i]];} break;}
     case 'toggleorig': S.add.showOrig=!S.add.showOrig; break;
     case 'blank': S.add.draft=blankDraft(); break;
-    case 'draftcancel': {const id=S.add.draft&&S.add.draft.editId; S.add.draft=null; if(id){S.view=id;S.tab='library';} break;}
+    case 'draftcancel': {S.addOpt=null; const id=S.add.draft&&S.add.draft.editId; S.add.draft=null; if(id){S.view=id;S.tab='library';} break;}
+    case 'dadd': S.addOpt={key:el.dataset.k,text:''}; setTimeout(()=>{ const i=document.querySelector('[data-in=dopt]'); if(i) i.focus(); },30); break;
+    case 'doptx': S.addOpt=null; break;
+    case 'doptok': applyOpt(); break;
     case 'dtog': {const d=S.add.draft,k=el.dataset.k; if(el.dataset.m==='1'){const i=d[k].indexOf(v); i<0?d[k].push(v):d[k].splice(i,1);} else d[k]=(d[k]===v?'':v); break;}
     case 'save': {
+      applyOpt();
       const d=S.add.draft; if(!d.title.trim()){toast('Add a title first');return;}
       if(!d.editId&&d.url&&!d.dupNote){ const du=dupOf(d.url); if(du&&S.add.dupOk!==du.key){ d.dupNote=du; toast('Already in your book. Tap Save again to add it anyway.',false,3500); return; } }
       if(d.editId){const x=byId(d.editId); const newMet=d.metText.split('\n').map(y=>y.trim()).filter(Boolean); if(x.needsMethod&&newMet.join('\n')!==x.method.join('\n')) delete x.needsMethod; Object.assign(x,{title:d.title.trim(),source:d.source,time:+d.time||30,serves:+d.serves||2,effort:d.effort||'Easy',meals:d.meals,mains:d.mains,diets:d.diets,cuisine:d.cuisine,custom:d.customText.split(',').map(y=>y.trim()).filter(Boolean),ingredients:parseIng(d.ingText),method:d.metText.split('\n').map(y=>y.trim()).filter(Boolean),editedBy:me}); delete S.serves[x.id]; S.add.draft=null; S.tab='library'; S.view=x.id; toast('Changes saved'); return;}
@@ -932,7 +953,7 @@ document.addEventListener('input',e=>{
   const m={q:()=>{S.q=v;render();const q=$('#q');q.focus();q.setSelectionRange(v.length,v.length);},
     note:()=>{byId(S.view).note=v},cmt:()=>{S.commentDraft=v},ci:()=>{S.cantInput=v},quickinput:()=>{S.quickInput=v},shopinput:()=>{S.shopInput=v},onb_name:()=>{S.onb[S.me].name=v},onb_book:()=>{S.onb[S.me].bookName=v},onb_code:()=>{S.onb[S.me].code=v},bookname:()=>{S.book.name=v},auth_name:()=>{S.auth.name=v},
     addtext:()=>{S.add.text=v},addurl:()=>{S.add.url=v; S.add.dup=null},weburl:()=>{S.add.web=v; S.add.dupWeb=null},
-    d_title:()=>{d.title=v},d_source:()=>{d.source=v},d_time:()=>{d.time=v},d_serves:()=>{d.serves=v},d_ing:()=>{d.ingText=v},d_met:()=>{d.metText=v},d_custom:()=>{d.customText=v}};
+    d_title:()=>{d.title=v},d_source:()=>{d.source=v},d_time:()=>{d.time=v},d_serves:()=>{d.serves=v},d_ing:()=>{d.ingText=v},d_met:()=>{d.metText=v},d_custom:()=>{d.customText=v},dopt:()=>{if(S.addOpt)S.addOpt.text=v}};
   m[k]&&m[k]();
   queueSync();
 });
@@ -943,6 +964,7 @@ document.addEventListener('keydown',e=>{
   if(e.target.dataset.in==='quickinput'){document.querySelector('[data-act=quickadd]').click();}
   if(e.target.dataset.in==='shopinput'){document.querySelector('[data-act=shopmanual]').click();}
   if(e.target.dataset.in==='cmt'){document.querySelector('[data-act=postc]').click();}
+  if(e.target.dataset.in==='dopt'){document.querySelector('[data-act=doptok]').click();}
   if(e.target.dataset.in==='auth_name'){document.querySelector('[data-act=authgo]').click();}
 });
 
